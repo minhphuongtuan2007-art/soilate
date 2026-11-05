@@ -745,7 +745,7 @@ class GameRoom:
             else:
                 should_call = random.random() < 0.15
 
-            if should_call:
+            if should_call or len(curr.hand) < 2:
                 self.handle_call_bluff(curr)
                 return
 
