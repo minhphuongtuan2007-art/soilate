@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Soilate - Game Bài Tố &amp; Soi Lật Multiplayer</title>
-  <link rel="stylesheet" href="style.css?v=16">
+  <link rel="stylesheet" href="style.css?v=17">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Cinzel:wght@700;900&display=swap" rel="stylesheet">
@@ -201,7 +201,7 @@
       <!-- Tools Drawer (7 Công cụ Soilate) -->
       <div class="tools-strip card-glass">
         <div class="tools-title">
-          <span>🛠️ CÔNG CỤ SOILATE (Mỗi người nhận 1 công cụ ngẫu nhiên mỗi vòng)</span>
+          <span>🛠️ CÔNG CỤ CỦA BẠN (Mỗi vòng nhận 1 công cụ ngẫu nhiên)</span>
           <span id="tool-status-badge" class="badge-ready">Sẵn sàng</span>
         </div>
 
@@ -222,36 +222,6 @@
           </button>
         </div>
 
-        <div class="tools-buttons-grid">
-          <button class="tool-btn" data-tool="DRAW_RANDOM" title="Bốc 1 lá ngẫu nhiên từ nọc bài">
-            <span class="tool-icon">📥</span>
-            <span class="tool-name">Bốc 1 lá</span>
-          </button>
-          <button class="tool-btn" data-tool="SWAP_RANDOM" title="Đổi 1 lá trên tay lấy 1 lá mới từ nọc">
-            <span class="tool-icon">🔄</span>
-            <span class="tool-name">Đổi 1 lá</span>
-          </button>
-          <button class="tool-btn highlight-ultimate" data-tool="SWAP_DECK" title="Đổi toàn bộ bài trên tay với 1 người chơi!">
-            <span class="tool-icon">🔀</span>
-            <span class="tool-name">Đổi Deck!</span>
-          </button>
-          <button class="tool-btn" data-tool="CHANGE_SUIT" title="Biến đổi chất của 1 lá bài trên tay">
-            <span class="tool-icon">🎨</span>
-            <span class="tool-name">Đổi chất</span>
-          </button>
-          <button class="tool-btn" data-tool="DISABLE_TOOL" title="Cấm 1 đối thủ dùng công cụ trong vòng này">
-            <span class="tool-icon">🚫</span>
-            <span class="tool-name">Khóa đối thủ</span>
-          </button>
-          <button class="tool-btn" data-tool="PEEK_CARD" title="Soi lén 1 lá bài úp của đối thủ trên bàn">
-            <span class="tool-icon">👁️</span>
-            <span class="tool-name">Soi bài úp</span>
-          </button>
-          <button class="tool-btn" data-tool="FORCE_REVEAL" title="Bắt đối thủ lật ngửa 1 lá bài úp cho cả bàn xem">
-            <span class="tool-icon">💥</span>
-            <span class="tool-name">Bắt lật lá</span>
-          </button>
-        </div>
       </div>
 
       <!-- Player Hand & Action Controls (Bottom) -->
@@ -486,6 +456,6 @@
   </div>
 
   <!-- Audio Context & Game Script -->
-  <script src="game.js?v=16"></script>
+  <script src="game.js?v=17"></script>
 </body>
 </html>

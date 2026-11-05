@@ -619,7 +619,6 @@ function renderLogs() {
 
 function renderTools() {
   const badge = document.getElementById('tool-status-badge');
-  const toolBtns = document.querySelectorAll('.tool-btn');
   const nameEl = document.getElementById('assigned-tool-name');
   const iconEl = document.getElementById('assigned-tool-icon');
   const descEl = document.getElementById('assigned-tool-desc');
@@ -688,34 +687,7 @@ function renderTools() {
     }
   }
 
-  // Update 7 tool buttons in the rack
-  toolBtns.forEach(btn => {
-    const toolId = btn.getAttribute('data-tool');
-    const isAssigned = (toolId === assignedToolKey);
 
-    if (isAssigned) {
-      btn.classList.add('assigned-tool-active');
-      btn.classList.remove('tool-locked');
-
-      const isAvailable = (!gameState.your_tools_disabled && !gameState.your_tool_used && gameState.state === 'PLAYING');
-      let canTrigger = false;
-      if (isAvailable) {
-        const tInfo = toolInfo || {};
-        if (tInfo.timing === 'own_turn') {
-          canTrigger = (gameState.is_your_turn === true);
-        } else {
-          canTrigger = true;
-        }
-      }
-      btn.disabled = !canTrigger;
-      btn.title = `${toolInfo?.name || toolId} (Công cụ của bạn vòng này)`;
-    } else {
-      btn.classList.remove('assigned-tool-active');
-      btn.classList.add('tool-locked');
-      btn.disabled = true;
-      btn.title = `Chưa nhận công cụ này trong vòng đấu hiện tại`;
-    }
-  });
 }
 
 function renderPlayerHand() {
