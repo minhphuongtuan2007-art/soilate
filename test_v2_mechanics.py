@@ -173,23 +173,25 @@ def test_shed_out_and_win():
 
     # Turn moves to p2
     assert room.current_player().id == p2.id
-    # p2 passes
-    ok, msg = room.handle_pass(p2)
-    assert ok, msg
+    
+    # 1. Verify Pass is rejected (No Pass rule)
+    ok_pass, msg_pass = room.handle_pass(p2)
+    assert not ok_pass, "Pass should be disabled in Soilate"
 
-    # Turn moves to p3
-    assert room.current_player().id == p3.id
-    # p3 passes -> Everyone passed!
-    ok, msg = room.handle_pass(p3)
-    assert ok, msg
+    # 2. Verify p2 can play a LOWER hand (Pair of 2s on top of Pair of Aces!)
+    c3 = Card("two1", "S", 2)
+    c4 = Card("two2", "H", 2)
+    p2.hand.extend([c3, c4])
+    ok_play, msg_play = room.handle_play_hand(p2, [c3.id, c4.id], [c3.id], {'type': 'pair', 'rank': 2})
+    assert ok_play, f"Playing a lower hand should be allowed: {msg_play}"
 
-    # p1 MUST be marked as finished with rank 1 (Winner)!
+    # p1 MUST be marked as finished with rank 1 (Winner) since p2 did not call!
     print(f"p1 finished_rank: {p1.finished_rank}")
     assert p1.finished_rank == 1, f"p1 should be Rank 1 winner, got {p1.finished_rank}"
     assert "p1" in room.finish_order
     # p1 should NOT be the current player!
     assert room.current_player().id != p1.id, "Turn should not be given back to p1 who has 0 cards!"
-    print("PASS: Shed Out and Win verified successfully!")
+    print("PASS: Lower Hand Play & No Pass verified successfully!")
 
 def test_auto_restart_countdown():
     print("\n--- 6. Testing Auto-Restart Countdown on Game Over ---")

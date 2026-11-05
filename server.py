@@ -297,11 +297,6 @@ class GameRoom:
             if fid not in card_ids:
                 return False, "Lá bài ngửa phải nằm trong số các lá bài được đánh ra!"
 
-        # Check beat current claim
-        if self.table_claim:
-            if not HandEvaluator.compare_claims(claim, self.table_claim):
-                return False, f"Thế bài đánh ra phải cùng loại và cao hơn '{self.table_claim_desc}'!"
-
         # Remove cards from player's hand
         player.hand = [c for c in player.hand if c.id not in card_ids]
         player.sort_hand()
@@ -311,12 +306,14 @@ class GameRoom:
             for tc in self.table_cards:
                 self.discard_pile.append(tc.card)
 
-        # If previous player had 0 cards and was not called (current player followed with higher combo),
+        # If previous player had 0 cards and was not called (current player followed with another combo),
         # then previous player successfully finished!
         if self.last_player_id and self.last_player_id != player.id:
             prev_p = self.get_player(self.last_player_id)
             if prev_p and len(prev_p.hand) == 0 and prev_p.finished_rank is None:
                 self.check_player_finished(prev_p)
+                if self.state == 'GAME_OVER':
+                    return True, "Trò chơi đã kết thúc!"
 
         # Place new table cards
         self.table_cards = []
@@ -470,47 +467,7 @@ class GameRoom:
                 self.add_log(f"🔥 Lượt mở màn vòng mới chuyển sang {self.current_player().name}!")
 
     def handle_pass(self, player: Player) -> Tuple[bool, str]:
-        if self.state != 'PLAYING':
-            return False, "Không thể bỏ lượt lúc này."
-        if self.current_player().id != player.id:
-            return False, "Chưa tới lượt của bạn!"
-        if not self.table_claim:
-            return False, "Bạn là người bắt đầu vòng mới, bắt buộc phải đánh bài!"
-
-        self.add_log(f"{player.name} Bỏ lượt (Pass).")
-        self.pass_count += 1
-        active = self.active_players()
-
-        # If all other players passed, last player who played gets a fresh table
-        if self.pass_count >= len(active) - 1:
-            last_p = self.get_player(self.last_player_id) if self.last_player_id else active[0]
-            self.add_log(f"🌟 Tất cả mọi người đã bỏ qua! {last_p.name} thắng bàn bài này!")
-            for tc in self.table_cards:
-                self.discard_pile.append(tc.card)
-            self.table_cards = []
-            self.table_claim = None
-            self.table_claim_desc = None
-            self.last_player_id = None
-            self.pass_count = 0
-            self.reset_round_tools()
-
-            # Check if last_p finished their cards without being called
-            if last_p and len(last_p.hand) == 0:
-                self.check_player_finished(last_p)
-
-            if self.state != 'GAME_OVER':
-                if last_p and last_p.finished_rank is None:
-                    self.set_turn_to(last_p.id)
-                    self.add_log(f"🔥 {last_p.name} mở màn vòng mới với bất kỳ thế bài nào tùy thích!")
-                else:
-                    self.advance_turn()
-                    curr = self.current_player()
-                    if curr:
-                        self.add_log(f"🔥 Lượt mở màn vòng mới chuyển sang {curr.name}!")
-        else:
-            self.advance_turn()
-
-        return True, "Đã bỏ lượt."
+        return False, "Luật Soilate không có tính năng bỏ lượt! Bạn bắt buộc phải Đánh bài hoặc Call!"
 
     def handle_use_tool(self, player: Player, tool_id: str, payload: Dict[str, Any]) -> Tuple[bool, str]:
         if self.state != 'PLAYING':
@@ -770,9 +727,18 @@ class GameRoom:
             # Decide if CALL
             should_call = False
             hidden_count = sum(1 for tc in self.table_cards if not tc.face_up)
+            prev_p = self.get_player(self.last_player_id) if self.last_player_id else None
+            is_prev_shedding_out = (prev_p and len(prev_p.hand) == 0 and prev_p.finished_rank is None)
             
-            # If claim is huge (Straight Flush / 5-of-a-kind) and multiple face down
-            if self.table_claim.get('type') in ['five', 'straight_flush'] and hidden_count >= 2:
+            if is_prev_shedding_out:
+                # Previous player is trying to shed out and win!
+                if hidden_count > 0:
+                    should_call = random.random() < 0.65
+                else:
+                    actual_cards = [tc.card for tc in self.table_cards]
+                    is_honest, _ = HandEvaluator.verify_claim(self.table_claim, actual_cards)
+                    should_call = not is_honest
+            elif self.table_claim.get('type') in ['five', 'straight_flush'] and hidden_count >= 2:
                 should_call = random.random() < 0.65
             elif hidden_count >= 3:
                 should_call = random.random() < 0.45
@@ -783,22 +749,18 @@ class GameRoom:
                 self.handle_call_bluff(curr)
                 return
 
-            # Try to beat table claim
-            play_decision = self.bot_find_beating_play(curr, self.table_claim)
+            # If not calling, Bot MUST play a hand (no pass allowed, can play smaller or any hand)
+            play_decision = self.bot_find_best_lead(curr)
             if play_decision:
                 c_ids, f_ids, claim = play_decision
                 self.handle_play_hand(curr, c_ids, f_ids, claim)
                 return
             else:
-                # If can't beat legitimately, decide to bluff or pass
-                if random.random() < 0.35 and len(curr.hand) >= HAND_TYPE_CARD_COUNT.get(self.table_claim.get('type', ''), 99):
-                    bluff_decision = self.bot_construct_bluff(curr, self.table_claim)
-                    if bluff_decision:
-                        c_ids, f_ids, claim = bluff_decision
-                        self.handle_play_hand(curr, c_ids, f_ids, claim)
-                        return
-                self.handle_pass(curr)
-                return
+                bluff_decision = self.bot_construct_bluff(curr, None)
+                if bluff_decision:
+                    c_ids, f_ids, claim = bluff_decision
+                    self.handle_play_hand(curr, c_ids, f_ids, claim)
+                    return
         else:
             # Lead a new round!
             lead_decision = self.bot_find_best_lead(curr)

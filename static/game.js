@@ -946,13 +946,11 @@ function updateSelectionSummary() {
 function renderActionControls() {
   const btnPlay = document.getElementById('btn-play-hand');
   const btnCall = document.getElementById('btn-call');
-  const btnPass = document.getElementById('btn-pass');
 
   // If player already finished their cards
   if (gameState.your_finished_rank) {
     if (btnPlay) btnPlay.disabled = true;
     if (btnCall) btnCall.disabled = true;
-    if (btnPass) btnPass.disabled = true;
     const summaryText = document.getElementById('selection-summary-text');
     if (summaryText) {
       summaryText.textContent = `🎉 BẠN ĐÃ XẢ HẾT BÀI VÀ VỀ ĐÍCH Ở VỊ TRÍ #${gameState.your_finished_rank}! Đang theo dõi ván đấu...`;
@@ -964,17 +962,18 @@ function renderActionControls() {
   const hasTablePlay = (gameState.table_claim !== null);
 
   // Call button is active when opponent has cards on the table
-  btnCall.disabled = !(isMyTurn && hasTablePlay);
+  if (btnCall) {
+    btnCall.disabled = !(isMyTurn && hasTablePlay);
+  }
 
-  // Pass button is active when opponent has cards on the table
-  btnPass.disabled = !(isMyTurn && hasTablePlay);
-
-  // Play button is active when my turn and valid card selection
+  // Play button is active when my turn and valid card selection (can play smaller or larger)
   const selCount = selectedCards.size;
   const upCount = Array.from(selectedCards).filter(cid => faceUpMap[cid] !== false).length;
   const isValidCount = (selCount >= 2 && selCount <= 5 && upCount >= 1);
 
-  btnPlay.disabled = !(isMyTurn && isValidCount);
+  if (btnPlay) {
+    btnPlay.disabled = !(isMyTurn && isValidCount);
+  }
 }
 
 function checkModals() {
@@ -1749,12 +1748,6 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-call').addEventListener('click', () => {
     playSound('call_slam');
     sendAction('CALL_BLUFF');
-  });
-
-  // Pass Turn Button
-  document.getElementById('btn-pass').addEventListener('click', () => {
-    playSound('click');
-    sendAction('PASS_TURN');
   });
 
   // Clear Selection Button (Bỏ chọn tất cả / Rút bài về)

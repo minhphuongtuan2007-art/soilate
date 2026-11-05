@@ -111,8 +111,8 @@
       <div class="lobby-rules-summary">
         <div class="rule-chip">⭐ 8 Chất: Bích, Chuồn, Rô, Cơ, Sao ⭐, Trăng 🌙, Vương miện 👑, Tia sét ⚡</div>
         <div class="rule-chip">🃏 Lên tới 4 Lá Joker vạn năng</div>
-        <div class="rule-chip">🎭 Đánh bài: Bắt buộc ít nhất 1 lá ngửa, còn lại úp tùy chọn</div>
-        <div class="rule-chip">⚡ Thách thức (Call): Bắt bài nói dối hoặc bị phạt nhận thêm bài!</div>
+        <div class="rule-chip">🎭 Đánh bài: Được phép đánh bài NHỎ HƠN hoặc lớn hơn, không ép đè bài!</div>
+        <div class="rule-chip" style="color: #67e8f9; border-color: rgba(103, 232, 249, 0.4);">🚫 Không có bỏ lượt: Đến lượt phải ĐÁNH BÀI hoặc CALL (bắt bài)!</div>
         <div class="rule-chip" style="color: #fde047; border-color: rgba(250, 204, 21, 0.4);">⚠️ Chỉ còn 1 lá bài: Bắt buộc bốc thêm 1 lá ngẫu nhiên</div>
       </div>
     </div>
@@ -295,9 +295,6 @@
             <button id="btn-call" class="btn-call btn-action" disabled>
               ⚡ CALL! (BẮT BÀI)
             </button>
-            <button id="btn-pass" class="btn-secondary btn-action" disabled>
-              ⏭️ BỎ LƯỢT
-            </button>
           </div>
         </div>
 
@@ -402,11 +399,11 @@
           <li><b>Thùng phá sảnh (Straight Flush):</b> 5 lá liên tiếp cùng 1 chất.</li>
         </ul>
 
-        <h3>3. QUY TẮC ÚP / NGỬA BÀI & BLUFFING</h3>
+        <h3>3. QUY TẮC ĐÁNH BÀI &amp; KHÔNG BỎ LƯỢT</h3>
         <ul>
-          <li>Khi đánh bài, bạn có quyền <b>Úp hoặc Ngửa</b> các lá bài tùy ý.</li>
-          <li><b>BẮT BUỘC: Phải có ít nhất 1 lá ngửa!</b></li>
-          <li>Người tiếp theo có thể chọn <b>Đánh đè</b> (cùng thế bài bậc cao hơn) hoặc <b>CALL (Bắt bài)</b>.</li>
+          <li>Khi đánh bài, bạn có quyền <b>Úp hoặc Ngửa</b> các lá bài tùy ý (<b>Bắt buộc ít nhất 1 lá ngửa</b>).</li>
+          <li><b>KHÔNG CÓ TÍNH NĂNG BỎ LƯỢT:</b> Trong lượt của mình, người chơi chỉ có 2 lựa chọn: <b>ĐÁNH BÀI</b> hoặc <b>CALL (Bắt bài)</b>!</li>
+          <li><b>ĐÁNH BÀI TỰ DO:</b> Bạn có thể đánh ra thế bài <b>nhỏ hơn</b> hoặc lớn hơn bài vừa đánh trên bàn, không ép buộc phải đánh cao hơn!</li>
         </ul>
 
         <h3>4. LUẬT PHẠT CALL MỚI CỰC KỲ KHẮC NGHIỆT</h3>
@@ -489,6 +486,6 @@
   </div>
 
   <!-- Audio Context & Game Script -->
-  <script src="game.js?v=12"></script>
+  <script src="game.js?v=14"></script>
 </body>
 </html>
