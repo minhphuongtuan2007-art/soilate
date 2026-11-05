@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Soilate - Game Bài Tố &amp; Soi Lật Multiplayer</title>
+  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Cinzel:wght@700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Background decorative light effects -->
+  <div class="ambient-glow glow-top"></div>
+  <div class="ambient-glow glow-bottom"></div>
+
+  <!-- Header -->
+  <header class="game-header">
+    <div class="logo-group">
+      <span class="logo-icon">🎴</span>
+      <h1 class="logo-title">SOILATE</h1>
+      <span class="logo-badge">8 CHẤT + JOKER</span>
+    </div>
+    
+    <div class="header-actions">
+      <div id="room-badge" class="room-pill hidden">
+        Phòng: <span id="display-room-id" class="code-val">DEFAULT</span>
+      </div>
+      <button id="btn-audio" class="btn-icon" title="Bật/Tắt âm thanh">🔊</button>
+      <button id="btn-rules" class="btn-outline">📖 Luật chơi</button>
+    </div>
+  </header>
+
+  <!-- LOBBY VIEW -->
+  <section id="view-lobby" class="view active">
+    <div class="lobby-card card-glass">
+      <h2 class="section-title">Tham Gia Bàn Chơi</h2>
+      <p class="section-subtitle">Game bài bluffing & xả bài hack não với 80 lá, 6 chất và 7 công cụ tối thượng!</p>
+
+      <div class="form-group">
+        <label for="input-player-name">Tên của bạn:</label>
+        <input type="text" id="input-player-name" placeholder="Nhập biệt danh..." maxlength="16" value="Cao Thủ">
+      </div>
+
+      <div class="form-group">
+        <label for="input-room-id">Mã phòng (hoặc để trống để vào phòng chung):</label>
+        <input type="text" id="input-room-id" placeholder="VD: VIP88" maxlength="12" style="text-transform: uppercase;">
+      </div>
+
+      <div class="form-group server-input-group">
+        <label for="input-server-url" style="display: flex; justify-content: space-between; align-items: center;">
+          <span>🌐 Máy chủ Game (WebSocket):</span>
+          <span id="server-status-pill" class="badge-ready" style="font-size: 10px;">Tự động</span>
+        </label>
+        <input type="text" id="input-server-url" placeholder="Mặc định: Tự động kết nối" style="font-family: monospace; font-size: 12px;">
+        <small class="text-muted" style="font-size: 10px; display: block; margin-top: 4px;">Khi deploy trên Vercel: nhập URL máy chủ backend (VD: wss://soilate.onrender.com)</small>
+      </div>
+
+      <button id="btn-join-room" class="btn-primary btn-large">Vào Bàn Chơi 🚀</button>
+
+      <div class="lobby-rules-summary">
+        <div class="rule-chip">⭐ 8 Chất: Bích, Chuồn, Rô, Cơ, Sao ⭐, Trăng 🌙, Vương miện 👑, Tia sét ⚡</div>
+        <div class="rule-chip">🃏 Lên tới 4 Lá Joker vạn năng</div>
+        <div class="rule-chip">🎭 Đánh bài: Bắt buộc ít nhất 1 lá ngửa, còn lại úp tùy chọn</div>
+        <div class="rule-chip">⚡ Thách thức (Call): Bắt bài nói dối hoặc bị phạt nhận thêm bài!</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROOM WAITING VIEW -->
+  <section id="view-room-waiting" class="view">
+    <div class="waiting-card card-glass">
+      <div class="waiting-header">
+        <h2 id="waiting-room-title">Phòng Chờ</h2>
+        <p class="text-muted">Đợi người chơi khác vào bàn hoặc thêm Bot để bắt đầu ngay!</p>
+      </div>
+
+      <div class="players-grid" id="waiting-players-list">
+        <!-- Rendered by JS -->
+      </div>
+
+      <div class="waiting-controls">
+        <button id="btn-add-bot" class="btn-secondary">🤖 + Thêm Bot</button>
+        <button id="btn-remove-bot" class="btn-secondary">🗑️ Xóa Bot</button>
+        <button id="btn-claim-host" class="btn-secondary" style="display:none;">👑 Nhận Chủ phòng</button>
+        <button id="btn-start-game" class="btn-primary btn-large">Bắt Đầu Trò Chơi 🎮</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN GAME VIEW -->
+  <section id="view-game" class="view">
+    <div class="game-layout">
+
+      <!-- Opponents Bar (Top) -->
+      <div class="opponents-strip" id="opponents-container">
+        <!-- Rendered by JS -->
+      </div>
+
+      <!-- Center Table -->
+      <div class="table-arena card-glass">
+        
+        <!-- Table Center Claim Announcement -->
+        <div class="table-info-bar">
+          <div class="table-claim-box" id="table-claim-display">
+            <span class="claim-label">THẾ BÀI TRÊN BÀN</span>
+            <div class="claim-title" id="current-claim-text">Bàn chơi đang trống - Hãy đánh mở màn!</div>
+            <div class="claim-sub" id="current-claim-author"></div>
+          </div>
+
+          <div class="deck-counter-box">
+            <div class="deck-icon-stack">🎴</div>
+            <div class="deck-counts">
+              <span>Nọc: <b id="deck-remaining-count">80</b></span>
+              <span>Đã bỏ: <b id="discard-count">0</b></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table Cards Played -->
+        <div class="table-cards-zone" id="table-cards-container">
+          <div class="empty-table-hint">Chưa có lá bài nào trên bàn</div>
+        </div>
+
+        <!-- Dramatic Call Banner (Shows when a call occurs) -->
+        <div id="call-result-banner" class="call-banner hidden">
+          <div class="call-banner-content" id="call-banner-content"></div>
+        </div>
+
+        <!-- Turn Notice -->
+        <div class="turn-indicator" id="turn-indicator-box">
+          Lượt của: <span id="turn-player-name" class="highlight-turn">...</span>
+        </div>
+      </div>
+
+      <!-- Live Logs Bar (Right side or compact ticker) -->
+      <div class="logs-sidebar card-glass">
+        <div class="logs-header">📜 Diễn Biến Trận Đấu</div>
+        <div class="logs-content" id="game-logs-list">
+          <div class="log-item">Chào mừng đến với Soilate!</div>
+        </div>
+      </div>
+
+      <!-- Tools Drawer (7 Công cụ Soilate) -->
+      <div class="tools-strip card-glass">
+        <div class="tools-title">
+          <span>🛠️ CÔNG CỤ SOILATE (Mỗi người nhận 1 công cụ ngẫu nhiên mỗi vòng)</span>
+          <span id="tool-status-badge" class="badge-ready">Sẵn sàng</span>
+        </div>
+
+        <!-- Spotlight: Công cụ được cấp ngẫu nhiên cho bạn -->
+        <div id="assigned-tool-banner" class="assigned-tool-banner">
+          <div class="assigned-tool-info">
+            <span class="assigned-tool-icon" id="assigned-tool-icon">🛠️</span>
+            <div class="assigned-tool-text">
+              <div class="assigned-tool-header">
+                <span class="assigned-tool-name" id="assigned-tool-name">Đang tải công cụ...</span>
+                <span class="assigned-tool-timing-badge" id="assigned-tool-timing"></span>
+              </div>
+              <span class="assigned-tool-desc" id="assigned-tool-desc">Công cụ sẽ xuất hiện khi ván chơi bắt đầu</span>
+            </div>
+          </div>
+          <button id="btn-activate-assigned-tool" class="btn-activate-tool" disabled>
+            ⚡ KÍCH HOẠT CÔNG CỤ
+          </button>
+        </div>
+
+        <div class="tools-buttons-grid">
+          <button class="tool-btn" data-tool="DRAW_RANDOM" title="Bốc 1 lá ngẫu nhiên từ nọc bài">
+            <span class="tool-icon">📥</span>
+            <span class="tool-name">Bốc 1 lá</span>
+          </button>
+          <button class="tool-btn" data-tool="SWAP_RANDOM" title="Đổi 1 lá trên tay lấy 1 lá mới từ nọc">
+            <span class="tool-icon">🔄</span>
+            <span class="tool-name">Đổi 1 lá</span>
+          </button>
+          <button class="tool-btn highlight-ultimate" data-tool="SWAP_DECK" title="Đổi toàn bộ bài trên tay với 1 người chơi!">
+            <span class="tool-icon">🔀</span>
+            <span class="tool-name">Đổi Deck!</span>
+          </button>
+          <button class="tool-btn" data-tool="CHANGE_SUIT" title="Biến đổi chất của 1 lá bài trên tay">
+            <span class="tool-icon">🎨</span>
+            <span class="tool-name">Đổi chất</span>
+          </button>
+          <button class="tool-btn" data-tool="DISABLE_TOOL" title="Cấm 1 đối thủ dùng công cụ trong vòng này">
+            <span class="tool-icon">🚫</span>
+            <span class="tool-name">Khóa đối thủ</span>
+          </button>
+          <button class="tool-btn" data-tool="PEEK_CARD" title="Soi lén 1 lá bài úp của đối thủ trên bàn">
+            <span class="tool-icon">👁️</span>
+            <span class="tool-name">Soi bài úp</span>
+          </button>
+          <button class="tool-btn" data-tool="FORCE_REVEAL" title="Bắt đối thủ lật ngửa 1 lá bài úp cho cả bàn xem">
+            <span class="tool-icon">💥</span>
+            <span class="tool-name">Bắt lật lá</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Player Hand & Action Controls (Bottom) -->
+      <div class="player-dock card-glass">
+        
+        <!-- Action Controls Bar -->
+        <div class="action-controls-bar">
+          
+          <!-- Claim Hand Form (When playing) -->
+          <div class="claim-form-panel" id="claim-form-panel">
+            <span class="form-title">Tuyên bố thế bài:</span>
+            
+            <select id="select-hand-type" class="game-select">
+              <option value="pair">Đôi (2 lá)</option>
+              <option value="three">Ba lá (3 lá)</option>
+              <option value="four">Bốn lá (Tứ quý - 4 lá)</option>
+              <option value="five">Năm lá (Ngũ quý - 5 lá)</option>
+              <option value="full_house">Cù lũ (3 + 2 lá)</option>
+              <option value="straight">Sảnh (5 lá liên tiếp)</option>
+              <option value="straight_flush">Thùng phá sảnh (5 lá cùng chất)</option>
+            </select>
+
+            <!-- Dynamic sub-inputs based on hand type -->
+            <div id="claim-sub-inputs" class="sub-inputs-row">
+              <!-- Rendered by JS based on select-hand-type -->
+            </div>
+
+            <button id="btn-auto-claim" class="btn-small btn-secondary" title="Tự động điền tuyên bố theo các lá đã chọn">⚡ Gợi ý thế</button>
+          </div>
+
+          <!-- Main Action Buttons -->
+          <div class="action-buttons-group">
+            <button id="btn-play-hand" class="btn-primary btn-action" disabled>
+              🎴 ĐÁNH BÀI
+            </button>
+            <button id="btn-call" class="btn-call btn-action" disabled>
+              ⚡ CALL! (BẮT BÀI)
+            </button>
+            <button id="btn-pass" class="btn-secondary btn-action" disabled>
+              ⏭️ BỎ LƯỢT
+            </button>
+          </div>
+        </div>
+
+        <!-- Selected cards instructions -->
+        <div class="hand-selection-status">
+          <span>Bài trên tay của bạn (<span id="my-card-count">0</span> lá)</span>
+          <div class="selection-actions-row">
+            <span class="text-accent" id="selection-summary-text">Click lá bài để chọn hoặc rút về. Bấm nút [ÚP/NGỬA] trên lá để đổi</span>
+            <button id="btn-clear-selection" class="btn-clear-sel" style="display:none;" title="Hạ tất cả các lá bài đã chọn xuống">❌ Bỏ chọn tất cả</button>
+          </div>
+        </div>
+
+        <!-- Hand Cards Container -->
+        <div class="hand-cards-container" id="my-hand-container">
+          <!-- Rendered by JS -->
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- MODAL: Penalty Card Selection (When winning a call) -->
+  <div id="modal-penalty" class="modal-backdrop hidden">
+    <div class="modal-card card-glass">
+      <h2 class="modal-title">🏆 BẠN ĐÃ THẮNG CUỘC CALL!</h2>
+      <p id="penalty-modal-desc">Hãy chọn 1 lá bài trên tay bạn để <b>tống sang cho đối thủ</b> bị phạt:</p>
+      <div class="modal-hand-picker" id="penalty-hand-picker">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Target Opponent Picker (For Swap Deck & Disable Tool) -->
+  <div id="modal-pick-player" class="modal-backdrop hidden">
+    <div class="modal-card card-glass">
+      <h2 class="modal-title" id="pick-player-modal-title">Chọn đối thủ</h2>
+      <div class="modal-player-list" id="pick-player-container">
+        <!-- Rendered by JS -->
+      </div>
+      <button class="btn-secondary modal-close-btn" onclick="closeModal('modal-pick-player')">Hủy bỏ</button>
+    </div>
+  </div>
+
+  <!-- MODAL: Change Suit Picker -->
+  <div id="modal-pick-suit" class="modal-backdrop hidden">
+    <div class="modal-card card-glass">
+      <h2 class="modal-title">Chọn chất mới cho lá bài</h2>
+      <div class="suit-picker-grid">
+        <button class="suit-choice-btn suit-S" data-suit="S">♠ Bích (Đen)</button>
+        <button class="suit-choice-btn suit-C" data-suit="C">♣ Chuồn (Xanh lục)</button>
+        <button class="suit-choice-btn suit-D" data-suit="D">♦ Rô (Cam)</button>
+        <button class="suit-choice-btn suit-H" data-suit="H">♥ Cơ (Đỏ)</button>
+        <button class="suit-choice-btn suit-X" data-suit="X">⭐ Sao (Vàng kim)</button>
+        <button class="suit-choice-btn suit-M" data-suit="M">🌙 Trăng (Tím)</button>
+        <button class="suit-choice-btn suit-K" data-suit="K">👑 Vương miện (Hồng)</button>
+        <button class="suit-choice-btn suit-L" data-suit="L">⚡ Tia sét (Lam)</button>
+      </div>
+      <button class="btn-secondary modal-close-btn" onclick="closeModal('modal-pick-suit')">Hủy bỏ</button>
+    </div>
+  </div>
+
+  <!-- MODAL: Peek Card Result -->
+  <div id="modal-peek-result" class="modal-backdrop hidden">
+    <div class="modal-card card-glass text-center">
+      <h2 class="modal-title">👁️ KÍNH CHIẾU YÊU SOI BÀI</h2>
+      <p class="text-muted">Chỉ duy nhất bạn thấy lá bài úp này của đối thủ:</p>
+      <div class="peek-card-display" id="peek-card-render"></div>
+      <button class="btn-primary modal-close-btn" onclick="closeModal('modal-peek-result')">Đã rõ! Đóng lại</button>
+    </div>
+  </div>
+
+  <!-- MODAL: Rules & Guide -->
+  <div id="modal-rules" class="modal-backdrop hidden">
+    <div class="modal-card card-glass modal-large">
+      <div class="modal-header-row">
+        <h2 class="modal-title">📖 LUẬT CHƠI SOILATE CHI TIẾT</h2>
+        <button class="btn-close" onclick="closeModal('modal-rules')">✕</button>
+      </div>
+      
+      <div class="rules-scrollable-body">
+        <h3>1. BỘ BÀI CO GIÃN THEO SỐ NGƯỜI CHƠI</h3>
+        <p>Bộ bài gồm từ 4 đến 8 chất x 13 bậc (2..A) + 1 đến 4 lá Joker tùy theo số người tham gia ván chơi:</p>
+        <ul>
+          <li><b>2 người:</b> 4 chất + 1 Joker (53 lá)</li>
+          <li><b>3 người:</b> 5 chất + 1 Joker (66 lá)</li>
+          <li><b>4 người:</b> 6 chất + 2 Joker (80 lá chuẩn)</li>
+          <li><b>5 người:</b> 7 chất + 3 Joker (94 lá)</li>
+          <li><b>6 người:</b> 8 chất + 4 Joker (108 lá)</li>
+          <li>8 chất bao gồm: <b>Bích ♠, Chuồn ♣, Rô ♦, Cơ ♥, Sao ⭐, Trăng 🌙, Vương miện 👑, Tia sét ⚡</b></li>
+          <li><b>Joker 🃏:</b> Wildcard vạn năng, thay thế được mọi chất và số.</li>
+        </ul>
+
+        <h3>2. CÁC THẾ BÀI HỢP LỆ</h3>
+        <ul>
+          <li><b>Đôi:</b> 2 lá cùng bậc.</li>
+          <li><b>Ba lá (Sám):</b> 3 lá cùng bậc.</li>
+          <li><b>Bốn lá (Tứ quý):</b> 4 lá cùng bậc.</li>
+          <li><b>Năm lá (Ngũ quý):</b> 5 lá cùng bậc.</li>
+          <li><b>Cù lũ (Full House):</b> 1 bộ Ba + 1 Đôi (5 lá).</li>
+          <li><b>Sảnh (Straight):</b> 5 lá liên tiếp (VD: 5-6-7-8-9, A-2-3-4-5, 10-J-Q-K-A).</li>
+          <li><b>Thùng phá sảnh (Straight Flush):</b> 5 lá liên tiếp cùng 1 chất.</li>
+        </ul>
+
+        <h3>3. QUY TẮC ÚP / NGỬA BÀI & BLUFFING</h3>
+        <ul>
+          <li>Khi đánh bài, bạn có quyền <b>Úp hoặc Ngửa</b> các lá bài tùy ý.</li>
+          <li><b>BẮT BUỘC: Phải có ít nhất 1 lá ngửa!</b></li>
+          <li>Người tiếp theo có thể chọn <b>Đánh đè</b> (cùng thế bài bậc cao hơn) hoặc <b>CALL (Bắt bài)</b>.</li>
+        </ul>
+
+        <h3>4. LUẬT PHẠT CALL MỚI CỰC KỲ KHẮC NGHIỆT</h3>
+        <ul>
+          <li><b>CALL ĐÚNG (Kẻ gian lận nói dối):</b>
+            <ul>
+              <li>Người Call được chọn <b>1 lá bài trên tay tống cho kẻ nói dối</b>.</li>
+              <li><b>Kẻ nói dối bị phạt LẤY TỪ CHỒNG BÀI BỎ số lá bằng: (Số lá mình đánh ra - 1)</b>, không được bỏ qua!</li>
+            </ul>
+          </li>
+          <li><b>CALL SAI (Người đánh trung thực):</b>
+            <ul>
+              <li>Kẻ nghi oan (người Call sai) phải nhận <b>1 lá tùy chọn từ người đánh thật</b>.</li>
+            </ul>
+          </li>
+          <li><b>ĐÁNH HẾT BÀI BẰNG CÁCH NÓI DỐI (BLUFF OUT):</b>
+            <ul>
+              <li>Nếu 1 người đánh hết sạch bài trên tay, người kế tiếp có thể Call.</li>
+              <li>Nếu phát hiện bài SAI $\rightarrow$ Kẻ nói dối bị phạt <b>bốc ngẫu nhiên 10 LÁ từ chồng bài bỏ</b>!</li>
+            </ul>
+          </li>
+          <li>Sau khi Call xong: Người thắng cuộc Call sẽ mở màn vòng mới với thế bài tùy thích.</li>
+        </ul>
+
+        <h3>5. LÁ BÀI BÍ ẨN XUẤT HIỆN THEO TỈ LỆ MỖI VÁN</h3>
+        <p>Mỗi ván chơi có thể xuất hiện các lá bài hành động độc lập:</p>
+        <ul>
+          <li>⏭️ <b>Skip Card (Tỉ lệ 70%):</b> Bỏ qua lượt người kế tiếp. (Đánh xong kết thúc lượt).</li>
+          <li>⚔️ <b>Attack Card (Tỉ lệ 50%):</b> Ép người kế tiếp bốc 2 lá bài phạt. (Đánh độc lập, bạn vẫn đánh bài tiếp).</li>
+          <li>👁️‍🗨️ <b>Open All Card (Tỉ lệ 5%):</b> Lật ngửa toàn bộ các lá bài úp của đối thủ trên bàn!</li>
+          <li>🌀 <b>Chaos Card (Tỉ lệ 0.05%):</b> Cơn lốc hỗn mang - TOÀN BỘ NGƯỜI CHƠI bốc thêm 10 lá!</li>
+          <li>👑 <b>Winner Card (Tỉ lệ 0.0000001% - Thần thoại):</b> NGAY LẬP TỨC THẮNG GAME!</li>
+        </ul>
+
+        <h3>6. 1 CÔNG CỤ NGẪU NHIÊN MỖI VÒNG (RESET SAU MỖI LƯỢT CALL)</h3>
+        <p>Mỗi người chơi nhận ngẫu nhiên 1 công cụ ở đầu vòng:</p>
+        <ol>
+          <li><b>Bốc 1 lá:</b> Rút 1 lá từ nọc (trong lượt mình).</li>
+          <li><b>Đổi 1 lá:</b> Đổi 1 lá rác lấy 1 lá mới từ nọc (trong lượt mình).</li>
+          <li><b>Đổi Deck:</b> Hoán đổi toàn bộ bài với 1 người chơi khác (trong lượt mình).</li>
+          <li><b>Đổi chất:</b> Đổi chất 1 lá bài sang bất kỳ chất nào (trong lượt mình).</li>
+          <li><b>Khóa đối thủ:</b> Vô hiệu hóa công cụ của đối thủ (bất kì lúc nào).</li>
+          <li><b>Soi bài úp:</b> Lén nhìn 1 lá úp của đối thủ (bất kì lúc nào).</li>
+          <li><b>Bắt lật lá:</b> Ép đối thủ lật ngửa 1 lá úp cho cả bàn xem (bất kì lúc nào).</li>
+        </ol>
+
+        <h3>7. ĐIỀU KIỆN THẮNG & THUA</h3>
+        <p>Người xả hết bài trên tay đầu tiên là <b>CHIẾN THẮNG</b>! Người giữ bài cuối cùng là <b>THUA CUỘC</b>.</p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-primary" onclick="closeModal('modal-rules')">Đã hiểu! Vào chơi ngay</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Context & Game Script -->
+  <script src="game.js?v=7"></script>
+</body>
+</html>
