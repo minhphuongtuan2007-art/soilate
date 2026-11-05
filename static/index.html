@@ -406,7 +406,24 @@
     </div>
   </div>
 
+  <!-- MODAL: Game Over / Victory Modal -->
+  <div id="modal-game-over" class="modal-backdrop hidden">
+    <div class="modal-card card-glass text-center modal-game-over">
+      <div class="trophy-icon" id="game-over-icon" style="font-size: 54px; margin-bottom: 6px;">🏆</div>
+      <h2 class="modal-title" id="game-over-title">KẾT THÚC TRẬN ĐẤU!</h2>
+      <p id="game-over-subtitle" class="text-accent" style="font-size: 14px; font-weight: 700; margin-bottom: 14px;"></p>
+      
+      <div class="scoreboard-container" id="game-over-scoreboard" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px;">
+        <!-- Rendered by JS -->
+      </div>
+
+      <div class="game-over-actions" style="display: flex; gap: 10px; justify-content: center;">
+        <button id="btn-play-again" class="btn-primary btn-large">🔄 Về Phòng Chờ / Chơi Ván Mới</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Audio Context & Game Script -->
-  <script src="game.js?v=8"></script>
+  <script src="game.js?v=9"></script>
 </body>
 </html>

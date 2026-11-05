@@ -156,6 +156,11 @@ class GameRoom:
             self.current_turn_index = (self.current_turn_index + 1) % len(self.players)
             cand = self.players[self.current_turn_index]
             if cand.finished_rank is None:
+                if len(cand.hand) == 0:
+                    self.check_player_finished(cand)
+                    if self.state == 'GAME_OVER':
+                        return
+                    continue
                 self.check_single_card_draw(cand)
                 break
 
@@ -164,6 +169,11 @@ class GameRoom:
             if p.id == player_id:
                 self.current_turn_index = idx
                 if p.finished_rank is None:
+                    if len(p.hand) == 0:
+                        self.check_player_finished(p)
+                        if self.state != 'GAME_OVER':
+                            self.advance_turn()
+                        return
                     self.check_single_card_draw(p)
                 return
 
@@ -296,6 +306,13 @@ class GameRoom:
         if self.table_cards:
             for tc in self.table_cards:
                 self.discard_pile.append(tc.card)
+
+        # If previous player had 0 cards and was not called (current player followed with higher combo),
+        # then previous player successfully finished!
+        if self.last_player_id and self.last_player_id != player.id:
+            prev_p = self.get_player(self.last_player_id)
+            if prev_p and len(prev_p.hand) == 0 and prev_p.finished_rank is None:
+                self.check_player_finished(prev_p)
 
         # Place new table cards
         self.table_cards = []
@@ -463,7 +480,7 @@ class GameRoom:
         # If all other players passed, last player who played gets a fresh table
         if self.pass_count >= len(active) - 1:
             last_p = self.get_player(self.last_player_id) if self.last_player_id else active[0]
-            self.add_log(f"🌟 Tất cả mọi người đã bỏ qua! {last_p.name} thắng bàn bài này và mở lượt mới!")
+            self.add_log(f"🌟 Tất cả mọi người đã bỏ qua! {last_p.name} thắng bàn bài này!")
             for tc in self.table_cards:
                 self.discard_pile.append(tc.card)
             self.table_cards = []
@@ -472,7 +489,20 @@ class GameRoom:
             self.last_player_id = None
             self.pass_count = 0
             self.reset_round_tools()
-            self.set_turn_to(last_p.id)
+
+            # Check if last_p finished their cards without being called
+            if last_p and len(last_p.hand) == 0:
+                self.check_player_finished(last_p)
+
+            if self.state != 'GAME_OVER':
+                if last_p and last_p.finished_rank is None:
+                    self.set_turn_to(last_p.id)
+                    self.add_log(f"🔥 {last_p.name} mở màn vòng mới với bất kỳ thế bài nào tùy thích!")
+                else:
+                    self.advance_turn()
+                    curr = self.current_player()
+                    if curr:
+                        self.add_log(f"🔥 Lượt mở màn vòng mới chuyển sang {curr.name}!")
         else:
             self.advance_turn()
 
@@ -903,7 +933,19 @@ class GameRoom:
             'pending_penalty': self.pending_penalty,
             'call_history': self.call_history,
             'logs': self.logs[-25:],
-            'peek_card': viewer.peek_cache if viewer else None
+            'peek_card': viewer.peek_cache if viewer else None,
+            'finish_order': self.finish_order,
+            'your_finished_rank': viewer.finished_rank if viewer else None,
+            'rankings': [
+                {
+                    'id': p.id,
+                    'name': p.name,
+                    'is_bot': p.is_bot,
+                    'rank': p.finished_rank,
+                    'card_count': len(p.hand)
+                }
+                for p in sorted(self.players, key=lambda x: (x.finished_rank or 99, len(x.hand)))
+            ]
         }
 
 
@@ -1150,10 +1192,20 @@ async def ws_handler(websocket: ServerConnection):
                     continue
                 async with room.lock:
                     p = room.get_player(current_player_id)
-                    if p and p.is_host:
+                    human_count = len([x for x in room.players if not x.is_bot])
+                    if p and (p.is_host or human_count <= 1 or room.state == 'GAME_OVER'):
                         room.state = 'LOBBY'
+                        room.finish_order = []
+                        room.table_cards = []
+                        room.table_claim = None
+                        room.table_claim_desc = None
+                        room.last_player_id = None
+                        room.pass_count = 0
+                        for pl in room.players:
+                            pl.hand = []
+                            pl.finished_rank = None
                         room.logs = []
-                        room.add_log("🔄 Chủ phòng đã đưa trò chơi về Phòng chờ (Lobby).")
+                        room.add_log("🔄 Đã đưa trò chơi về Phòng chờ để chuẩn bị ván mới.")
                 await manager.broadcast_room(room)
 
     except websockets.exceptions.ConnectionClosed:

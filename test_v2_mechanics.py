@@ -151,9 +151,50 @@ def test_special_cards():
     assert ok, msg
     print("Skip card verified: Turn skipped successfully.")
 
+def test_shed_out_and_win():
+    print("\n--- 5. Testing Shed Out (0 cards) and Win when Everyone Passes ---")
+    room = GameRoom("WIN_TEST_ROOM", "Win Test")
+    p1 = Player("p1", "Cao Thủ")
+    p2 = Player("p2", "Bob Bot", is_bot=True)
+    p3 = Player("p3", "Zack Bot", is_bot=True)
+    room.players = [p1, p2, p3]
+    room.start_game()
+
+    # Give p1 exactly 2 cards (Pair of Aces)
+    c1 = Card("ace1", "S", 14)
+    c2 = Card("ace2", "C", 14)
+    p1.hand = [c1, c2]
+    room.set_turn_to(p1.id)
+
+    # p1 plays Pair of Aces -> 0 cards left!
+    ok, msg = room.handle_play_hand(p1, [c1.id, c2.id], [c1.id], {'type': 'pair', 'rank': 14})
+    assert ok, msg
+    assert len(p1.hand) == 0, "p1 should have 0 cards"
+
+    # Turn moves to p2
+    assert room.current_player().id == p2.id
+    # p2 passes
+    ok, msg = room.handle_pass(p2)
+    assert ok, msg
+
+    # Turn moves to p3
+    assert room.current_player().id == p3.id
+    # p3 passes -> Everyone passed!
+    ok, msg = room.handle_pass(p3)
+    assert ok, msg
+
+    # p1 MUST be marked as finished with rank 1 (Winner)!
+    print(f"p1 finished_rank: {p1.finished_rank}")
+    assert p1.finished_rank == 1, f"p1 should be Rank 1 winner, got {p1.finished_rank}"
+    assert "p1" in room.finish_order
+    # p1 should NOT be the current player!
+    assert room.current_player().id != p1.id, "Turn should not be given back to p1 who has 0 cards!"
+    print("PASS: Shed Out and Win verified successfully!")
+
 if __name__ == '__main__':
     test_deck_scaling()
     test_penalties_and_tools()
     test_single_card_draw_rule()
     test_special_cards()
+    test_shed_out_and_win()
     print("\nALL MECHANICS TESTS PASSED SUCCESSFULLY! 🎯")

@@ -428,7 +428,11 @@ function renderCenterTable() {
 
   deckCount.textContent = gameState.deck_count;
   discardCount.textContent = gameState.discard_count;
-  turnIndicator.textContent = gameState.is_your_turn ? 'BẠN (Đến lượt đánh)' : gameState.current_turn_name;
+  if (gameState.your_finished_rank) {
+    turnIndicator.textContent = `🎉 BẠN ĐÃ VỀ ĐÍCH (#${gameState.your_finished_rank})`;
+  } else {
+    turnIndicator.textContent = gameState.is_your_turn ? 'BẠN (Đến lượt đánh)' : gameState.current_turn_name;
+  }
 
   if (gameState.table_claim_desc) {
     claimText.textContent = gameState.table_claim_desc;
@@ -807,6 +811,18 @@ function renderActionControls() {
   const btnCall = document.getElementById('btn-call');
   const btnPass = document.getElementById('btn-pass');
 
+  // If player already finished their cards
+  if (gameState.your_finished_rank) {
+    if (btnPlay) btnPlay.disabled = true;
+    if (btnCall) btnCall.disabled = true;
+    if (btnPass) btnPass.disabled = true;
+    const summaryText = document.getElementById('selection-summary-text');
+    if (summaryText) {
+      summaryText.textContent = `🎉 BẠN ĐÃ XẢ HẾT BÀI VÀ VỀ ĐÍCH Ở VỊ TRÍ #${gameState.your_finished_rank}! Đang theo dõi ván đấu...`;
+    }
+    return;
+  }
+
   const isMyTurn = gameState.is_your_turn && gameState.state === 'PLAYING';
   const hasTablePlay = (gameState.table_claim !== null);
 
@@ -846,6 +862,66 @@ function checkModals() {
     peekRender.appendChild(createCardElement(gameState.peek_card, false));
     peekModal.classList.remove('hidden');
   }
+
+  // 3. Game Over / Victory Modal
+  if (gameState.state === 'GAME_OVER') {
+    renderGameOverModal();
+  } else {
+    closeModal('modal-game-over');
+  }
+}
+
+function renderGameOverModal() {
+  const modal = document.getElementById('modal-game-over');
+  const icon = document.getElementById('game-over-icon');
+  const title = document.getElementById('game-over-title');
+  const sub = document.getElementById('game-over-subtitle');
+  const board = document.getElementById('game-over-scoreboard');
+
+  if (!modal) return;
+
+  const yourRank = gameState.your_finished_rank;
+  if (yourRank === 1) {
+    if (icon) icon.textContent = '👑';
+    if (title) title.textContent = 'XUẤT SẮC! BẠN ĐÃ CHIẾN THẮNG!';
+    if (sub) sub.textContent = 'Bạn là người đầu tiên xả sạch bài trên tay!';
+    playSound('victory');
+  } else if (yourRank === gameState.players.length) {
+    if (icon) icon.textContent = '💀';
+    if (title) title.textContent = 'BẠN ĐÃ THUA CUỘC!';
+    if (sub) sub.textContent = 'Bạn là người giữ bài cuối cùng trên bàn đấu!';
+    playSound('bluff_caught');
+  } else {
+    if (icon) icon.textContent = '🏅';
+    if (title) title.textContent = 'KẾT THÚC TRẬN ĐẤU!';
+    if (sub) sub.textContent = `Bạn đã về đích ở Hạng #${yourRank || '?'}`;
+    playSound('victory');
+  }
+
+  if (board) {
+    board.innerHTML = '';
+    const rankings = gameState.rankings || [];
+    rankings.forEach((p, idx) => {
+      const isYou = (p.id === gameState.your_id);
+      const item = document.createElement('div');
+      item.style.display = 'flex';
+      item.style.justifyContent = 'space-between';
+      item.style.alignItems = 'center';
+      item.style.padding = '10px 14px';
+      item.style.borderRadius = '8px';
+      item.style.background = isYou ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255, 255, 255, 0.05)';
+      item.style.border = isYou ? '1px solid rgba(245, 158, 11, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)';
+
+      const medal = (p.rank === 1) ? '🥇 HẠNG 1 (THẮNG)' : (idx === rankings.length - 1 ? '💀 HẠNG CHÓT (THUA)' : `Hạng #${p.rank || (idx + 1)}`);
+      item.innerHTML = `
+        <span style="font-weight: 700; ${isYou ? 'color: #fbbf24;' : ''}">${p.is_bot ? '🤖' : '👤'} ${escapeHtml(p.name)} ${isYou ? '(Bạn)' : ''}</span>
+        <span style="font-weight: 800; color: ${p.rank === 1 ? '#10b981' : (idx === rankings.length - 1 ? '#ef4444' : '#94a3b8')};">${medal}</span>
+      `;
+      board.appendChild(item);
+    });
+  }
+
+  openModal('modal-game-over');
 }
 
 function renderPenaltyPicker() {
@@ -1232,6 +1308,16 @@ window.addEventListener('DOMContentLoaded', () => {
       faceUpMap = {};
       renderPlayerHand();
       renderActionControls();
+    });
+  }
+
+  // Play Again Button (from Game Over modal)
+  const btnPlayAgain = document.getElementById('btn-play-again');
+  if (btnPlayAgain) {
+    btnPlayAgain.addEventListener('click', () => {
+      playSound('click');
+      closeModal('modal-game-over');
+      sendAction('RESTART_GAME');
     });
   }
 });
