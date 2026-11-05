@@ -89,16 +89,40 @@ def test_penalties_and_tools():
     claim_three = {'type': 'three', 'rank': 14}
     ok, msg = room.handle_play_hand(p2, [b1.id, b2.id, b3.id], [b1.id], claim_three)
     assert ok, msg
-    assert len(p2.hand) == 1 # 1 card remaining
+    # p2 had 4 cards, played 3 -> was down to 1 card, so drew 1 card immediately -> has 2 cards!
+    assert len(p2.hand) == 2, f"Expected 2 cards (1 leftover + 1 drawn from single card rule), got {len(p2.hand)}"
 
     # p3 calls bluff on p2
     ok, msg = room.handle_call_bluff(p3)
     assert ok, msg
     # p2 played 3 cards, so discard penalty is 3 - 1 = 2 cards!
-    # Initial hand remaining was 1 + 2 drawn = 3 cards!
-    print(f"p2 regular bluff penalty: hand now has {len(p2.hand)} cards (1 leftover + 2 drawn)")
-    assert len(p2.hand) == 3, f"Expected 3 cards (1 + 2), got {len(p2.hand)}"
+    # Initial hand was 2 + 2 drawn = 4 cards!
+    print(f"p2 regular bluff penalty: hand now has {len(p2.hand)} cards (2 before + 2 drawn)")
+    assert len(p2.hand) == 4, f"Expected 4 cards (2 + 2), got {len(p2.hand)}"
     print("PASS: Regular bluff penalty (cards - 1) verified.")
+
+def test_single_card_draw_rule():
+    print("\n--- 4. Testing Single Card Draw Rule ---")
+    room = GameRoom("SINGLE_CARD_ROOM", "Room 1 Card")
+    p1 = Player("p1", "Player 1")
+    p2 = Player("p2", "Player 2")
+    room.players = [p1, p2]
+    room.start_game()
+
+    # Manually give p1 3 cards
+    c1 = Card("sc1", "S", 10)
+    c2 = Card("sc2", "C", 10)
+    c3 = Card("sc3", "D", 5)
+    p1.hand = [c1, c2, c3]
+    room.set_turn_to(p1.id)
+
+    # p1 plays pair 10 (2 cards) -> drops to 1 card!
+    ok, msg = room.handle_play_hand(p1, [c1.id, c2.id], [c1.id], {'type': 'pair', 'rank': 10})
+    assert ok, msg
+    # Because of the 1-card rule, p1 must have drawn 1 card immediately!
+    print(f"p1 played pair from 3 cards -> hand size should be 2 (1 leftover + 1 drawn): {len(p1.hand)}")
+    assert len(p1.hand) == 2, f"Expected 2 cards after automatic 1-card draw, got {len(p1.hand)}"
+    print("PASS: Single Card Draw Rule verified.")
 
 def test_special_cards():
     print("\n--- 3. Testing Special Cards Execution ---")
@@ -130,5 +154,6 @@ def test_special_cards():
 if __name__ == '__main__':
     test_deck_scaling()
     test_penalties_and_tools()
+    test_single_card_draw_rule()
     test_special_cards()
     print("\nALL MECHANICS TESTS PASSED SUCCESSFULLY! 🎯")

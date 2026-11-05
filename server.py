@@ -156,12 +156,15 @@ class GameRoom:
             self.current_turn_index = (self.current_turn_index + 1) % len(self.players)
             cand = self.players[self.current_turn_index]
             if cand.finished_rank is None:
+                self.check_single_card_draw(cand)
                 break
 
     def set_turn_to(self, player_id: str):
         for idx, p in enumerate(self.players):
             if p.id == player_id:
                 self.current_turn_index = idx
+                if p.finished_rank is None:
+                    self.check_single_card_draw(p)
                 return
 
     def reset_round_tools(self):
@@ -213,6 +216,30 @@ class GameRoom:
             self.finish_order.append(p.id)
             self.add_log(f"🎉 Người chơi {p.name} đã XẢ HẾT BÀI và về đích ở Vị trí #{rank}!")
             self.check_game_over()
+
+    def check_single_card_draw(self, p: Player) -> bool:
+        """
+        Quy tắc Soilate: Nếu người chơi chỉ còn đúng 1 lá bài trên tay,
+        bắt buộc phải bốc thêm 1 lá ngẫu nhiên từ nọc bài (hoặc từ chồng bài bỏ nếu nọc hết).
+        """
+        if len(p.hand) == 1 and p.finished_rank is None:
+            drawn = None
+            if self.deck:
+                drawn = self.deck.pop()
+            elif self.discard_pile:
+                idx = random.randrange(len(self.discard_pile))
+                drawn = self.discard_pile.pop(idx)
+            
+            if drawn:
+                p.hand.append(drawn)
+                p.sort_hand()
+                self.add_log(f"⚠️ {p.name} chỉ còn đúng 1 lá bài! Theo luật, phải bốc thêm 1 lá ngẫu nhiên từ nọc bài!")
+                return True
+        return False
+
+    def check_all_single_card_rules(self):
+        for p in self.active_players():
+            self.check_single_card_draw(p)
 
     def check_game_over(self):
         active = self.active_players()
@@ -286,6 +313,9 @@ class GameRoom:
         up_count = len(face_up_ids)
         down_count = len(chosen_cards) - up_count
         self.add_log(f"{player.name} đánh: {claim_desc} ({up_count} lá ngửa, {down_count} lá úp).")
+
+        # Check single card draw rule
+        self.check_single_card_draw(player)
 
         # Move turn to next active player
         self.advance_turn()
@@ -388,6 +418,10 @@ class GameRoom:
                 loser.hand.append(c)
                 loser.sort_hand()
                 self.add_log(f"📦 {winner.name} đã đưa lá {c.to_dict(face_up=True)['rank_name']} {c.to_dict(face_up=True)['suit_name']} cho {loser.name}.")
+
+        # Check single card draw rule if either player is down to 1 card
+        self.check_single_card_draw(winner)
+        self.check_single_card_draw(loser)
 
         # Check if winner is now out of cards
         self.check_player_finished(winner)
@@ -500,6 +534,8 @@ class GameRoom:
             player.hand, target.hand = target.hand, player.hand
             player.sort_hand()
             target.sort_hand()
+            self.check_single_card_draw(player)
+            self.check_single_card_draw(target)
             player.tool_used = True
             self.add_log(f"⚡⚡ ĐẢO NGƯỢC THẾ CỜ: {player.name} ĐỔI TOÀN BỘ BỘ BÀI VỚI {target.name}!")
             return True, f"Đã hoán đổi toàn bộ bài với {target.name}!"
@@ -566,6 +602,7 @@ class GameRoom:
 
         player.hand.remove(card)
         self.discard_pile.append(card)
+        self.check_single_card_draw(player)
 
         stype = card.special_type
         if stype == 'SKIP':
