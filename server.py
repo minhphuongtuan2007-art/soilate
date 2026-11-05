@@ -121,6 +121,7 @@ class GameRoom:
         self.finish_order: List[str] = []
         self.logs: List[str] = []
         self.call_history: Optional[Dict[str, Any]] = None
+        self.game_over_countdown: Optional[int] = None
         self.lock = asyncio.Lock()
 
     def add_log(self, msg: str):
@@ -199,6 +200,7 @@ class GameRoom:
         self.pending_penalty = None
         self.finish_order = []
         self.call_history = None
+        self.game_over_countdown = None
         self.state = 'PLAYING'
         self.logs = []
         self.add_log("=== VÁN MỚI BẮT ĐẦU ===")
@@ -262,6 +264,8 @@ class GameRoom:
                 self.finish_order.append(loser.id)
                 self.add_log(f"💀 Người chơi {loser.name} là người giữ bài cuối cùng và THUA CUỘC!")
             self.add_log("=== TRÒ CHƠI KẾT THÚC ===")
+            self.game_over_countdown = 5
+            self.add_log("⏱️ Ván mới sẽ tự động bắt đầu sau 5 giây...")
 
     def handle_play_hand(self, player: Player, card_ids: List[str], face_up_ids: List[str], claim: Dict[str, Any]) -> Tuple[bool, str]:
         if self.state != 'PLAYING':
@@ -936,6 +940,7 @@ class GameRoom:
             'peek_card': viewer.peek_cache if viewer else None,
             'finish_order': self.finish_order,
             'your_finished_rank': viewer.finished_rank if viewer else None,
+            'game_over_countdown': self.game_over_countdown,
             'rankings': [
                 {
                     'id': p.id,
@@ -969,10 +974,27 @@ class ServerManager:
                     pass
 
     async def run_bot_ticks(self):
-        """Periodic background ticker for bot actions"""
+        """Periodic background ticker for bot actions and room state auto-progression"""
         while True:
             await asyncio.sleep(1.2)
             for room in list(self.rooms.values()):
+                # Auto-restart countdown ticker when GAME_OVER
+                if room.state == 'GAME_OVER':
+                    if room.game_over_countdown is not None:
+                        async with room.lock:
+                            room.game_over_countdown -= 1
+                            if room.game_over_countdown <= 0:
+                                room.game_over_countdown = None
+                                room.players = [pl for pl in room.players if pl.is_connected()]
+                                if len(room.players) >= 2:
+                                    room.start_game()
+                                    room.add_log("🚀 VÁN ĐẤU MỚI TỰ ĐỘNG BẮT ĐẦU!")
+                                else:
+                                    room.state = 'LOBBY'
+                                    room.add_log("⚠️ Không đủ người chơi để tự động bắt đầu ván mới, chuyển về Phòng Chờ.")
+                        await self.broadcast_room(room)
+                    continue
+
                 if room.state in ['PLAYING', 'CALL_RESOLVING']:
                     curr = room.current_player()
                     is_bot_turn = (curr and curr.is_bot)
@@ -1083,8 +1105,9 @@ async def ws_handler(websocket: ServerConnection):
                     room.players = [pl for pl in room.players if pl.is_connected()]
                     p = room.get_player(current_player_id)
                     active_humans = [pl for pl in room.players if not pl.is_bot and pl.ws is not None]
-                    can_start = p and (p.is_host or len(active_humans) <= 1)
+                    can_start = p and (p.is_host or len(active_humans) <= 1 or room.state == 'GAME_OVER')
                     if can_start:
+                        room.game_over_countdown = None
                         ok, msg = room.start_game()
                         if not ok:
                             await websocket.send(json.dumps({'type': 'ERROR', 'message': msg}))

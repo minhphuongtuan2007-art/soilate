@@ -191,10 +191,46 @@ def test_shed_out_and_win():
     assert room.current_player().id != p1.id, "Turn should not be given back to p1 who has 0 cards!"
     print("PASS: Shed Out and Win verified successfully!")
 
+def test_auto_restart_countdown():
+    print("\n--- 6. Testing Auto-Restart Countdown on Game Over ---")
+    class MockWS:
+        class State:
+            OPEN = 1
+        state = State.OPEN
+
+    room = GameRoom('TEST_RESTART', 'Test Room')
+    p1 = Player('p1', 'Player 1', False, MockWS())
+    p2 = Player('p2', 'Alice Bot', True, None)
+    room.players = [p1, p2]
+    room.start_game()
+    assert room.state == 'PLAYING'
+
+    # Finish p1 hand to trigger GAME_OVER
+    p1.hand = []
+    room.check_player_finished(p1)
+    assert room.state == 'GAME_OVER'
+    assert room.game_over_countdown == 5
+    print("PASS: GAME_OVER triggered with countdown = 5.")
+
+    # Decrement countdown to 0
+    for _ in range(5):
+        room.game_over_countdown -= 1
+        if room.game_over_countdown <= 0:
+            room.game_over_countdown = None
+            room.players = [pl for pl in room.players if pl.is_connected()]
+            if len(room.players) >= 2:
+                room.start_game()
+
+    assert room.state == 'PLAYING'
+    assert len(p1.hand) == 12
+    assert len(p2.hand) == 12
+    print("PASS: Game automatically transitioned to new match!")
+
 if __name__ == '__main__':
     test_deck_scaling()
     test_penalties_and_tools()
     test_single_card_draw_rule()
     test_special_cards()
     test_shed_out_and_win()
+    test_auto_restart_countdown()
     print("\nALL MECHANICS TESTS PASSED SUCCESSFULLY! 🎯")

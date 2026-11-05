@@ -428,7 +428,37 @@ function renderCenterTable() {
 
   deckCount.textContent = gameState.deck_count;
   discardCount.textContent = gameState.discard_count;
-  if (gameState.your_finished_rank) {
+  if (gameState.state === 'GAME_OVER') {
+    if (callBanner) callBanner.classList.add('hidden');
+    turnIndicator.textContent = "🏆 TRẬN ĐẤU KẾT THÚC";
+    claimText.textContent = "🏆 TRẬN ĐẤU ĐÃ KẾT THÚC!";
+    claimAuthor.textContent = "";
+
+    const winner = (gameState.rankings && gameState.rankings[0]) ? gameState.rankings[0] : null;
+    const winnerName = winner ? winner.name : 'Người chiến thắng';
+    const countdown = (gameState.game_over_countdown !== undefined && gameState.game_over_countdown !== null) ? gameState.game_over_countdown : 5;
+
+    cardsZone.innerHTML = `
+      <div class="game-over-center-box card-glass" style="padding: 20px 24px; text-align: center; border: 2px solid #f59e0b; border-radius: 14px; background: rgba(15, 23, 42, 0.96); box-shadow: 0 0 25px rgba(245, 158, 11, 0.4); max-width: 440px; margin: auto;">
+        <div style="font-size: 40px; margin-bottom: 4px;">🏆</div>
+        <div style="font-size: 20px; font-weight: 800; color: #fbbf24; margin-bottom: 4px;">KẾT THÚC TRẬN ĐẤU!</div>
+        <div style="font-size: 14px; color: #f8fafc; margin-bottom: 8px;">🥇 Người chiến thắng: <b style="color:#10b981;">${escapeHtml(winnerName)}</b></div>
+        <div style="font-size: 14px; color: #94a3b8; margin-bottom: 14px;">⏱️ Tự động bắt đầu ván mới sau: <b style="color:#f59e0b; font-size: 18px;">${countdown > 0 ? countdown : 1}s</b></div>
+        <button id="btn-quick-new-game" class="btn-primary" style="padding: 8px 20px; font-weight: 800; cursor: pointer; border-radius: 8px; border: none; background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; font-size: 13px;">
+          🚀 Bắt đầu ván mới ngay
+        </button>
+      </div>
+    `;
+
+    const btnQuick = document.getElementById('btn-quick-new-game');
+    if (btnQuick) {
+      btnQuick.addEventListener('click', () => {
+        playSound('click');
+        sendAction('START_GAME');
+      });
+    }
+    return;
+  } else if (gameState.your_finished_rank) {
     turnIndicator.textContent = `🎉 BẠN ĐÃ VỀ ĐÍCH (#${gameState.your_finished_rank})`;
   } else {
     turnIndicator.textContent = gameState.is_your_turn ? 'BẠN (Đến lượt đánh)' : gameState.current_turn_name;
@@ -921,6 +951,12 @@ function renderGameOverModal() {
     });
   }
 
+  const secEl = document.getElementById('game-over-countdown-sec');
+  const countdown = (gameState.game_over_countdown !== undefined && gameState.game_over_countdown !== null) ? gameState.game_over_countdown : 5;
+  if (secEl) {
+    secEl.textContent = countdown > 0 ? countdown : 1;
+  }
+
   openModal('modal-game-over');
 }
 
@@ -1311,7 +1347,17 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Play Again Button (from Game Over modal)
+  // Quick Start Next Round Button (from Game Over modal)
+  const btnQuickStartNow = document.getElementById('btn-quick-start-now');
+  if (btnQuickStartNow) {
+    btnQuickStartNow.addEventListener('click', () => {
+      playSound('click');
+      closeModal('modal-game-over');
+      sendAction('START_GAME');
+    });
+  }
+
+  // Play Again Button (from Game Over modal -> back to lobby)
   const btnPlayAgain = document.getElementById('btn-play-again');
   if (btnPlayAgain) {
     btnPlayAgain.addEventListener('click', () => {

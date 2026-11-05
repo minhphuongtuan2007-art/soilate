@@ -408,22 +408,27 @@
 
   <!-- MODAL: Game Over / Victory Modal -->
   <div id="modal-game-over" class="modal-backdrop hidden">
-    <div class="modal-card card-glass text-center modal-game-over">
+    <div class="modal-card card-glass text-center modal-game-over" style="max-width: 480px; padding: 24px;">
       <div class="trophy-icon" id="game-over-icon" style="font-size: 54px; margin-bottom: 6px;">🏆</div>
       <h2 class="modal-title" id="game-over-title">KẾT THÚC TRẬN ĐẤU!</h2>
       <p id="game-over-subtitle" class="text-accent" style="font-size: 14px; font-weight: 700; margin-bottom: 14px;"></p>
       
-      <div class="scoreboard-container" id="game-over-scoreboard" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px;">
+      <div class="scoreboard-container" id="game-over-scoreboard" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
         <!-- Rendered by JS -->
       </div>
 
-      <div class="game-over-actions" style="display: flex; gap: 10px; justify-content: center;">
-        <button id="btn-play-again" class="btn-primary btn-large">🔄 Về Phòng Chờ / Chơi Ván Mới</button>
+      <div id="game-over-countdown-banner" style="font-size: 15px; font-weight: 700; color: #fbbf24; margin-bottom: 16px; padding: 10px 14px; background: rgba(245, 158, 11, 0.15); border-radius: 8px; border: 1px dashed #f59e0b;">
+        ⏱️ Tự động sang ván mới sau: <span id="game-over-countdown-sec" style="font-size: 20px; font-weight: 900; color: #fff;">5</span>s
+      </div>
+
+      <div class="game-over-actions" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+        <button id="btn-quick-start-now" class="btn-primary" style="background: linear-gradient(135deg, #f59e0b, #d97706); border: none; padding: 10px 20px; font-weight: 800; cursor: pointer; border-radius: 8px; color: #000; font-size: 14px;">🚀 Bắt đầu ván mới ngay</button>
+        <button id="btn-play-again" class="btn-secondary" style="padding: 10px 16px; font-weight: 600; cursor: pointer; border-radius: 8px; font-size: 13px;">🚪 Về Phòng Chờ</button>
       </div>
     </div>
   </div>
 
   <!-- Audio Context & Game Script -->
-  <script src="game.js?v=9"></script>
+  <script src="game.js?v=10"></script>
 </body>
 </html>
