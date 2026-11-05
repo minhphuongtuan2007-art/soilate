@@ -289,6 +289,13 @@ class GameRoom:
         if len(chosen_cards) != req_count:
             return False, f"Thế bài '{HAND_TYPE_NAMES.get(hand_type)}' yêu cầu đúng {req_count} lá bài!"
 
+        # Enforce SAME hand type when following an existing play on the table
+        if self.table_claim:
+            table_type = self.table_claim.get('type')
+            if hand_type != table_type:
+                expected_name = HAND_TYPE_NAMES.get(table_type, table_type)
+                return False, f"Bắt buộc phải đánh cùng thế bài '{expected_name}'! Bạn có thể đánh bài nhỏ hơn hoặc bấm CALL!"
+
         # Verify at least 1 card is face-up
         if not face_up_ids:
             return False, "Luật Soilate bắt buộc phải lật ngửa ít nhất 1 lá bài!"
@@ -749,18 +756,29 @@ class GameRoom:
                 self.handle_call_bluff(curr)
                 return
 
-            # If not calling, Bot MUST play a hand (no pass allowed, can play smaller or any hand)
-            play_decision = self.bot_find_best_lead(curr)
+            table_type = self.table_claim.get('type')
+            req_count = HAND_TYPE_CARD_COUNT.get(table_type, 2)
+            if len(curr.hand) < req_count:
+                self.handle_call_bluff(curr)
+                return
+
+            # Try to play legitimate combo of the SAME hand type (smaller or higher rank allowed)
+            play_decision = self.bot_find_same_type_play(curr, table_type)
             if play_decision:
                 c_ids, f_ids, claim = play_decision
                 self.handle_play_hand(curr, c_ids, f_ids, claim)
                 return
             else:
-                bluff_decision = self.bot_construct_bluff(curr, None)
-                if bluff_decision:
-                    c_ids, f_ids, claim = bluff_decision
-                    self.handle_play_hand(curr, c_ids, f_ids, claim)
-                    return
+                # Bluff the SAME hand type or call
+                if random.random() < 0.65:
+                    bluff_decision = self.bot_construct_bluff(curr, table_type)
+                    if bluff_decision:
+                        c_ids, f_ids, claim = bluff_decision
+                        self.handle_play_hand(curr, c_ids, f_ids, claim)
+                        return
+                # Otherwise, bot calls bluff
+                self.handle_call_bluff(curr)
+                return
         else:
             # Lead a new round!
             lead_decision = self.bot_find_best_lead(curr)
@@ -812,62 +830,90 @@ class GameRoom:
 
         return None
 
-    def bot_find_beating_play(self, bot: Player, current_claim: Dict[str, Any]) -> Optional[Tuple[List[str], List[str], Dict[str, Any]]]:
+    def bot_find_same_type_play(self, bot: Player, target_type: str) -> Optional[Tuple[List[str], List[str], Dict[str, Any]]]:
         from collections import defaultdict
-        hand_type = current_claim.get('type')
         rank_groups = defaultdict(list)
         for c in bot.hand:
             rank_groups[c.rank].append(c)
 
-        if hand_type == 'pair':
-            min_r = current_claim.get('rank', 0)
-            for r in sorted(rank_groups.keys()):
-                if r > min_r and len(rank_groups[r]) >= 2:
+        if target_type == 'pair':
+            for r in sorted(rank_groups.keys(), reverse=True):
+                if len(rank_groups[r]) >= 2:
                     chosen = rank_groups[r][:2]
                     return [c.id for c in chosen], [chosen[0].id], {'type': 'pair', 'rank': r}
-        elif hand_type == 'three':
-            min_r = current_claim.get('rank', 0)
-            for r in sorted(rank_groups.keys()):
-                if r > min_r and len(rank_groups[r]) >= 3:
+        elif target_type == 'three':
+            for r in sorted(rank_groups.keys(), reverse=True):
+                if len(rank_groups[r]) >= 3:
                     chosen = rank_groups[r][:3]
                     return [c.id for c in chosen], [chosen[0].id], {'type': 'three', 'rank': r}
-        elif hand_type == 'four':
-            min_r = current_claim.get('rank', 0)
-            for r in sorted(rank_groups.keys()):
-                if r > min_r and len(rank_groups[r]) >= 4:
+        elif target_type == 'four':
+            for r in sorted(rank_groups.keys(), reverse=True):
+                if len(rank_groups[r]) >= 4:
                     chosen = rank_groups[r][:4]
                     return [c.id for c in chosen], [chosen[0].id], {'type': 'four', 'rank': r}
-        elif hand_type == 'five':
-            min_r = current_claim.get('rank', 0)
-            for r in sorted(rank_groups.keys()):
-                if r > min_r and len(rank_groups[r]) >= 5:
+        elif target_type == 'five':
+            for r in sorted(rank_groups.keys(), reverse=True):
+                if len(rank_groups[r]) >= 5:
                     chosen = rank_groups[r][:5]
                     return [c.id for c in chosen], [chosen[0].id], {'type': 'five', 'rank': r}
+        elif target_type == 'full_house':
+            trip_rank = None
+            for r in sorted(rank_groups.keys(), reverse=True):
+                if len(rank_groups[r]) >= 3:
+                    trip_rank = r
+                    break
+            if trip_rank is not None:
+                for r in sorted(rank_groups.keys(), reverse=True):
+                    if r != trip_rank and len(rank_groups[r]) >= 2:
+                        chosen = rank_groups[trip_rank][:3] + rank_groups[r][:2]
+                        return [c.id for c in chosen], [chosen[0].id], {'type': 'full_house', 'triple_rank': trip_rank, 'pair_rank': r}
+        elif target_type == 'straight':
+            distinct_ranks = sorted(rank_groups.keys())
+            for i in range(len(distinct_ranks) - 4):
+                seq = distinct_ranks[i:i+5]
+                if seq == list(range(seq[0], seq[0]+5)):
+                    chosen = [rank_groups[r][0] for r in seq]
+                    return [c.id for c in chosen], [chosen[0].id], {'type': 'straight', 'high_rank': seq[-1]}
+        elif target_type == 'straight_flush':
+            suit_groups = defaultdict(list)
+            for c in bot.hand:
+                if c.suit not in ['W', 'SPEC']:
+                    suit_groups[c.suit].append(c)
+            for s, s_cards in suit_groups.items():
+                s_ranks = sorted(list(set(c.rank for c in s_cards)))
+                for i in range(len(s_ranks) - 4):
+                    seq = s_ranks[i:i+5]
+                    if seq == list(range(seq[0], seq[0]+5)):
+                        chosen = []
+                        for r in seq:
+                            chosen.append(next(c for c in s_cards if c.rank == r))
+                        return [c.id for c in chosen], [chosen[0].id], {'type': 'straight_flush', 'high_rank': seq[-1], 'suit': s}
         return None
 
-    def bot_construct_bluff(self, bot: Player, current_claim: Optional[Dict[str, Any]]) -> Optional[Tuple[List[str], List[str], Dict[str, Any]]]:
-        if len(bot.hand) < 2:
+    def bot_construct_bluff(self, bot: Player, target_type: Optional[str] = 'pair') -> Optional[Tuple[List[str], List[str], Dict[str, Any]]]:
+        if not target_type:
+            target_type = 'pair'
+        req_count = HAND_TYPE_CARD_COUNT.get(target_type, 2)
+        if len(bot.hand) < req_count:
             return None
-        # Choose 1 real card as face up, and bluff the rest
-        if current_claim:
-            hand_type = current_claim.get('type', 'pair')
-            req_count = HAND_TYPE_CARD_COUNT.get(hand_type, 2)
-            if len(bot.hand) < req_count:
-                return None
-            chosen = bot.hand[:req_count]
-            # Must declare a claim higher than current
-            if hand_type in ['pair', 'three', 'four', 'five']:
-                target_rank = min(14, current_claim.get('rank', 2) + random.randint(1, 3))
-                if target_rank <= current_claim.get('rank', 2):
-                    return None
-                claim = {'type': hand_type, 'rank': target_rank}
-                return [c.id for c in chosen], [chosen[0].id], claim
+        chosen = bot.hand[:req_count]
+        face_up_id = chosen[0].id
+        face_up_rank = chosen[0].rank
+        face_up_suit = chosen[0].suit if chosen[0].suit not in ['W', 'SPEC'] else 'S'
+
+        if target_type in ['pair', 'three', 'four', 'five']:
+            claim = {'type': target_type, 'rank': face_up_rank}
+        elif target_type == 'full_house':
+            pair_rank = 2 if face_up_rank != 2 else 3
+            claim = {'type': 'full_house', 'triple_rank': face_up_rank, 'pair_rank': pair_rank}
+        elif target_type == 'straight':
+            claim = {'type': 'straight', 'high_rank': max(5, face_up_rank)}
+        elif target_type == 'straight_flush':
+            claim = {'type': 'straight_flush', 'high_rank': max(5, face_up_rank), 'suit': face_up_suit}
         else:
-            # Lead bluff
-            chosen = bot.hand[:2]
-            target_rank = chosen[0].rank
-            return [c.id for c in chosen], [chosen[0].id], {'type': 'pair', 'rank': target_rank}
-        return None
+            claim = {'type': 'pair', 'rank': face_up_rank}
+
+        return [c.id for c in chosen], [face_up_id], claim
 
     def to_client_state(self, viewer_id: str) -> Dict[str, Any]:
         viewer = self.get_player(viewer_id)

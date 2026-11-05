@@ -178,7 +178,17 @@ def test_shed_out_and_win():
     ok_pass, msg_pass = room.handle_pass(p2)
     assert not ok_pass, "Pass should be disabled in Soilate"
 
-    # 2. Verify p2 can play a LOWER hand (Pair of 2s on top of Pair of Aces!)
+    # 2. Verify p2 CANNOT play a different hand type (bắt buộc cùng thế)
+    c_d1 = Card('diff1', 'S', 7)
+    c_d2 = Card('diff2', 'C', 7)
+    c_d3 = Card('diff3', 'D', 7)
+    p2.hand.extend([c_d1, c_d2, c_d3])
+    ok_diff, msg_diff = room.handle_play_hand(p2, [c_d1.id, c_d2.id, c_d3.id], [c_d1.id], {'type': 'three', 'rank': 7})
+    assert not ok_diff, 'Playing different hand type must be rejected!'
+    assert 'Bắt buộc phải đánh cùng thế bài' in msg_diff, msg_diff
+    p2.hand = [c for c in p2.hand if c.id not in [c_d1.id, c_d2.id, c_d3.id]]
+
+    # 3. Verify p2 can play a LOWER hand of the SAME type (Pair of 2s on top of Pair of Aces!)
     c3 = Card("two1", "S", 2)
     c4 = Card("two2", "H", 2)
     p2.hand.extend([c3, c4])

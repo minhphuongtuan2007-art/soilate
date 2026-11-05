@@ -914,13 +914,47 @@ function ensureAtLeastOneFaceUp() {
   }
 }
 
+const REQUIRED_HAND_CARD_COUNT = {
+  'pair': 2,
+  'three': 3,
+  'four': 4,
+  'five': 5,
+  'full_house': 5,
+  'straight': 5,
+  'straight_flush': 5
+};
+
+const HAND_TYPE_VN_NAMES = {
+  'pair': 'Đôi (2 lá)',
+  'three': 'Ba lá (3 lá)',
+  'four': 'Tứ quý (4 lá)',
+  'five': 'Năm lá (5 lá)',
+  'full_house': 'Cù lũ (3 + 2 lá)',
+  'straight': 'Sảnh (5 lá)',
+  'straight_flush': 'Thùng phá sảnh (5 lá)'
+};
+
 function updateSelectionSummary() {
   const text = document.getElementById('selection-summary-text');
   const clearBtn = document.getElementById('btn-clear-selection');
   const selCount = selectedCards.size;
 
+  const hasTablePlay = (gameState && gameState.table_claim);
+  const reqType = hasTablePlay ? gameState.table_claim.type : null;
+  const reqCount = reqType ? (REQUIRED_HAND_CARD_COUNT[reqType] || 2) : null;
+  const reqName = reqType ? (HAND_TYPE_VN_NAMES[reqType] || reqType) : '';
+
   if (selCount === 0) {
-    text.textContent = "Click vào lá bài để chọn đưa lên. Click lần nữa để rút bài về.";
+    if (hasTablePlay) {
+      const myCardCount = (gameState.your_hand || []).length;
+      if (myCardCount < reqCount) {
+        text.innerHTML = `<span style="color:#ef4444; font-weight:700;">⚠️ Bạn chỉ có ${myCardCount} lá, không đủ ${reqCount} lá để đánh cùng thế ${reqName}. Bắt buộc bấm CALL!</span>`;
+      } else {
+        text.innerHTML = `Bàn yêu cầu thế <b>${reqName}</b>. Hãy chọn đúng ${reqCount} lá (ít nhất 1 lá ngửa) để đánh hoặc bấm <b>CALL</b>.`;
+      }
+    } else {
+      text.textContent = "Click vào lá bài để chọn đưa lên. Click lần nữa để rút bài về.";
+    }
     if (clearBtn) clearBtn.style.display = 'none';
     return;
   }
@@ -932,10 +966,22 @@ function updateSelectionSummary() {
   const downCount = selCount - upCount;
 
   let handTag = '';
-  if (detected.valid) {
-    handTag = ` | 🎯 Thế bài: <b style="color:#10b981;">${detected.name}</b>`;
-  } else if (selCount >= 2 && selCount <= 5) {
-    handTag = ` | 🎭 <b style="color:#fbbf24;">Bài Nói dối / Bluff</b>`;
+  if (hasTablePlay) {
+    if (selCount === reqCount) {
+      if (detected.valid && detected.type === reqType) {
+        handTag = ` | 🎯 Khớp thế bài: <b style="color:#10b981;">${detected.name}</b> (Bài Thật ✅)`;
+      } else {
+        handTag = ` | 🎭 <b style="color:#fbbf24;">Đánh cùng thế ${reqName} (Bài Nói dối / Bluff 🤫)</b>`;
+      }
+    } else {
+      handTag = ` | <b style="color:#ef4444;">❌ Bắt buộc đúng ${reqCount} lá cho thế ${reqName}!</b>`;
+    }
+  } else {
+    if (detected.valid) {
+      handTag = ` | 🎯 Thế bài: <b style="color:#10b981;">${detected.name}</b>`;
+    } else if (selCount >= 2 && selCount <= 5) {
+      handTag = ` | 🎭 <b style="color:#fbbf24;">Bài Nói dối / Bluff</b>`;
+    }
   }
 
   text.innerHTML = `Đã chọn: ${selCount} lá (${upCount} lá Ngửa, ${downCount} lá Úp) ${upCount >= 1 ? '✅' : '❌ Cần ít nhất 1 ngửa'}${handTag}`;
@@ -946,6 +992,7 @@ function updateSelectionSummary() {
 function renderActionControls() {
   const btnPlay = document.getElementById('btn-play-hand');
   const btnCall = document.getElementById('btn-call');
+  const selectType = document.getElementById('select-hand-type');
 
   // If player already finished their cards
   if (gameState.your_finished_rank) {
@@ -966,10 +1013,27 @@ function renderActionControls() {
     btnCall.disabled = !(isMyTurn && hasTablePlay);
   }
 
-  // Play button is active when my turn and valid card selection (can play smaller or larger)
   const selCount = selectedCards.size;
   const upCount = Array.from(selectedCards).filter(cid => faceUpMap[cid] !== false).length;
-  const isValidCount = (selCount >= 2 && selCount <= 5 && upCount >= 1);
+
+  let isValidCount = false;
+  if (hasTablePlay) {
+    const reqType = gameState.table_claim.type;
+    const reqCount = REQUIRED_HAND_CARD_COUNT[reqType] || 2;
+    if (selectType) {
+      if (selectType.value !== reqType) {
+        selectType.value = reqType;
+        selectType.dispatchEvent(new Event('change'));
+      }
+      selectType.disabled = true;
+    }
+    isValidCount = (selCount === reqCount && upCount >= 1);
+  } else {
+    if (selectType) {
+      selectType.disabled = false;
+    }
+    isValidCount = (selCount >= 2 && selCount <= 5 && upCount >= 1);
+  }
 
   if (btnPlay) {
     btnPlay.disabled = !(isMyTurn && isValidCount);
@@ -1405,28 +1469,49 @@ function autoFillClaim(isManual = false) {
   }
 
   // Tự động điền giá trị thế bài vào dropdowns
-  if (detected.type && selectType) {
-    selectType.value = detected.type;
+  const activeType = (gameState && gameState.table_claim) ? gameState.table_claim.type : detected.type;
+  if (activeType && selectType) {
+    selectType.value = activeType;
     selectType.dispatchEvent(new Event('change'));
 
-    if (['pair', 'three', 'four', 'five'].includes(detected.type)) {
+    // Determine fallback rank from face up or chosen cards
+    const faceUpCards = chosenCards.filter(c => faceUpMap[c.id] !== false);
+    const primaryCard = (faceUpCards.length > 0) ? faceUpCards[0] : chosenCards[0];
+    const fallbackRank = primaryCard ? primaryCard.rank : 14;
+
+    if (['pair', 'three', 'four', 'five'].includes(activeType)) {
       const rEl = document.getElementById('claim-rank');
       if (rEl) {
-        rEl.value = (detected.rank || detected.suggestedRank || 14);
+        if (detected.valid && detected.type === activeType) {
+          rEl.value = detected.rank || fallbackRank;
+        } else {
+          rEl.value = fallbackRank;
+        }
       }
-    } else if (detected.type === 'full_house') {
+    } else if (activeType === 'full_house') {
       const tripEl = document.getElementById('claim-triple-rank');
       const pairEl = document.getElementById('claim-pair-rank');
-      if (tripEl && detected.triple_rank) tripEl.value = detected.triple_rank;
-      if (pairEl && detected.pair_rank) pairEl.value = detected.pair_rank;
-    } else if (detected.type === 'straight') {
+      if (detected.valid && detected.type === 'full_house') {
+        if (tripEl && detected.triple_rank) tripEl.value = detected.triple_rank;
+        if (pairEl && detected.pair_rank) pairEl.value = detected.pair_rank;
+      } else {
+        if (tripEl) tripEl.value = fallbackRank;
+        if (pairEl) pairEl.value = (fallbackRank === 2 ? 3 : 2);
+      }
+    } else if (activeType === 'straight') {
       const highEl = document.getElementById('claim-high-rank');
-      if (highEl && detected.high_rank) highEl.value = detected.high_rank;
-    } else if (detected.type === 'straight_flush') {
+      if (highEl) {
+        highEl.value = (detected.valid && detected.type === 'straight') ? detected.high_rank : Math.max(5, fallbackRank);
+      }
+    } else if (activeType === 'straight_flush') {
       const highEl = document.getElementById('claim-high-rank');
       const suitEl = document.getElementById('claim-suit');
-      if (highEl && detected.high_rank) highEl.value = detected.high_rank;
-      if (suitEl && detected.suit) suitEl.value = detected.suit;
+      if (highEl) {
+        highEl.value = (detected.valid && detected.type === 'straight_flush') ? detected.high_rank : Math.max(5, fallbackRank);
+      }
+      if (suitEl) {
+        suitEl.value = (primaryCard && !['W', 'SPEC'].includes(primaryCard.suit)) ? primaryCard.suit : 'S';
+      }
     }
   }
 }
