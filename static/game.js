@@ -219,15 +219,22 @@ function getWebSocketUrl() {
   return `${proto}//${window.location.host}/ws`;
 }
 
-function connectWebSocket(playerName, roomId) {
+let currentRoomAction = 'JOIN_ROOM';
+
+function connectWebSocket(playerName, roomId, action = 'JOIN_ROOM') {
   if (playerName) savedPlayerName = playerName;
   if (roomId) savedRoomId = roomId;
+  if (action) currentRoomAction = action;
 
   initAudio();
   const wsUrl = getWebSocketUrl();
   console.log("Connecting to WebSocket:", wsUrl);
 
   if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({
+      action: currentRoomAction,
+      payload: { player_name: savedPlayerName, room_id: savedRoomId }
+    }));
     return;
   }
 
@@ -237,9 +244,11 @@ function connectWebSocket(playerName, roomId) {
     console.log("Connected to Soilate Server.");
     isReconnecting = false;
     socket.send(JSON.stringify({
-      action: 'JOIN_ROOM',
+      action: currentRoomAction,
       payload: { player_name: savedPlayerName, room_id: savedRoomId }
     }));
+    // Also fetch available rooms
+    socket.send(JSON.stringify({ action: 'GET_ROOMS' }));
   };
 
   socket.onmessage = (event) => {
@@ -249,6 +258,12 @@ function connectWebSocket(playerName, roomId) {
         const prevState = gameState;
         gameState = msg.data;
         renderGameState(prevState);
+      } else if (msg.type === 'ROOM_LIST') {
+        renderPublicRooms(msg.rooms);
+      } else if (msg.type === 'ROOM_LEFT') {
+        gameState = null;
+        switchView('view-lobby');
+        sendAction('GET_ROOMS');
       } else if (msg.type === 'ERROR') {
         alert("⚠️ Thông báo: " + msg.message);
       }
@@ -259,10 +274,10 @@ function connectWebSocket(playerName, roomId) {
 
   socket.onclose = () => {
     console.log("WebSocket connection closed. Auto-reconnecting in 1.5s...");
-    if (!isReconnecting) {
+    if (!isReconnecting && gameState) {
       isReconnecting = true;
       setTimeout(() => {
-        connectWebSocket(savedPlayerName, savedRoomId);
+        connectWebSocket(savedPlayerName, savedRoomId, 'JOIN_ROOM');
       }, 1500);
     }
   };
@@ -270,6 +285,74 @@ function connectWebSocket(playerName, roomId) {
   socket.onerror = (err) => {
     console.warn("WebSocket error:", err);
   };
+}
+
+function renderPublicRooms(rooms) {
+  const listEl = document.getElementById('public-rooms-list');
+  if (!listEl) return;
+
+  if (!rooms || rooms.length === 0) {
+    listEl.innerHTML = '<div class="room-item-row" style="justify-content: center; color: #94a3b8; font-size: 13px;">Chưa có phòng nào đang mở. Hãy tạo phòng mới nhé!</div>';
+    return;
+  }
+
+  listEl.innerHTML = '';
+  rooms.forEach(r => {
+    const row = document.createElement('div');
+    row.className = 'room-item-row';
+    const isPlaying = (r.state === 'PLAYING');
+    const stateBadge = isPlaying
+      ? '<span class="badge-state-playing">⚔️ Đang đấu</span>'
+      : '<span class="badge-state-lobby">⏳ Phòng chờ</span>';
+    const isFull = (r.player_count >= r.max_players);
+
+    row.innerHTML = `
+      <div class="room-item-info">
+        <div class="room-item-title">
+          <span>${escapeHtml(r.name || r.id)}</span>
+          <span style="font-family: monospace; font-size: 11px; color: #fbbf24; background: rgba(245, 158, 11, 0.15); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(245, 158, 11, 0.3);">${escapeHtml(r.id)}</span>
+        </div>
+        <div class="room-item-meta">
+          <span>👥 ${r.player_count}/${r.max_players} người (${r.human_count} người thật)</span>
+          <span>${stateBadge}</span>
+        </div>
+      </div>
+      <button class="btn-primary btn-inline btn-join-from-list" data-room-id="${escapeHtml(r.id)}" ${isFull ? 'disabled' : ''}>
+        ${isFull ? 'Phòng đầy' : 'Vào chơi 🚀'}
+      </button>
+    `;
+
+    const joinBtn = row.querySelector('.btn-join-from-list');
+    if (joinBtn && !isFull) {
+      joinBtn.addEventListener('click', () => {
+        playSound('click');
+        const nameInput = document.getElementById('input-player-name');
+        const name = nameInput.value.trim() || 'Người chơi';
+        connectWebSocket(name, r.id, 'JOIN_ROOM');
+      });
+    }
+
+    listEl.appendChild(row);
+  });
+}
+
+function copyInviteLink(roomId) {
+  const origin = window.location.origin;
+  const path = window.location.pathname;
+  const inviteUrl = `${origin}${path}?room=${encodeURIComponent(roomId)}`;
+
+  navigator.clipboard.writeText(inviteUrl).then(() => {
+    alert(`📋 Đã sao chép link mời phòng [ ${roomId} ] vào bộ nhớ tạm!\n\nLink: ${inviteUrl}\n\nGửi link này cho bạn bè để cùng vào chiến game nhé!`);
+  }).catch(() => {
+    prompt(`Link mời bạn bè vào phòng [ ${roomId} ] (Nhấn Ctrl + C để sao chép):`, inviteUrl);
+  });
+}
+
+function leaveCurrentRoom() {
+  if (confirm("Bạn có chắc chắn muốn rời phòng để quay về Sảnh chờ không?")) {
+    playSound('click');
+    sendAction('LEAVE_ROOM');
+  }
 }
 
 function sendAction(action, payload = {}) {
@@ -299,6 +382,16 @@ function switchView(targetViewId) {
       el.classList.remove('active');
     }
   });
+
+  const badge = document.getElementById('room-badge');
+  const btnHeaderLeave = document.getElementById('btn-header-leave');
+  if (targetViewId === 'view-lobby') {
+    if (badge) badge.classList.add('hidden');
+    if (btnHeaderLeave) btnHeaderLeave.style.display = 'none';
+  } else {
+    if (badge) badge.classList.remove('hidden');
+    if (btnHeaderLeave) btnHeaderLeave.style.display = 'inline-block';
+  }
 }
 
 /* ==========================================================================
@@ -1487,15 +1580,120 @@ window.addEventListener('DOMContentLoaded', () => {
     openModal('modal-rules');
   });
 
+  // Lobby Navigation Tabs
+  document.querySelectorAll('.lobby-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      playSound('click');
+      document.querySelectorAll('.lobby-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.lobby-tab-content').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      const tabId = btn.getAttribute('data-tab');
+      const content = document.getElementById(tabId);
+      if (content) content.classList.add('active');
+
+      if (tabId === 'tab-rooms') {
+        sendAction('GET_ROOMS');
+      }
+    });
+  });
+
+  // Random Room Code Generator
+  const btnGenRandom = document.getElementById('btn-gen-random-code');
+  if (btnGenRandom) {
+    btnGenRandom.addEventListener('click', () => {
+      playSound('click');
+      const createInput = document.getElementById('input-create-room-id');
+      if (createInput) {
+        createInput.value = 'SOL-' + Math.floor(1000 + Math.random() * 9000);
+      }
+    });
+  }
+
+  // Create Room Button
+  const btnCreateRoom = document.getElementById('btn-create-room');
+  if (btnCreateRoom) {
+    btnCreateRoom.addEventListener('click', () => {
+      playSound('click');
+      const nameInput = document.getElementById('input-player-name');
+      const createInput = document.getElementById('input-create-room-id');
+      const name = nameInput.value.trim() || 'Người chơi';
+      let roomCode = createInput.value.trim().toUpperCase();
+      if (!roomCode) {
+        roomCode = 'SOL-' + Math.floor(1000 + Math.random() * 9000);
+      }
+      connectWebSocket(name, roomCode, 'CREATE_ROOM');
+    });
+  }
+
   // Join Room Button
   document.getElementById('btn-join-room').addEventListener('click', () => {
+    playSound('click');
     const nameInput = document.getElementById('input-player-name');
     const roomInput = document.getElementById('input-room-id');
     const name = nameInput.value.trim() || 'Người chơi';
     const room = roomInput.value.trim().toUpperCase() || 'DEFAULT';
 
-    connectWebSocket(name, room);
+    connectWebSocket(name, room, 'JOIN_ROOM');
   });
+
+  // Refresh Public Rooms List Button
+  const btnRefreshRooms = document.getElementById('btn-refresh-rooms');
+  if (btnRefreshRooms) {
+    btnRefreshRooms.addEventListener('click', () => {
+      playSound('click');
+      sendAction('GET_ROOMS');
+    });
+  }
+
+  // Copy Invite Link Buttons
+  const btnCopyInvite = document.getElementById('btn-copy-invite');
+  if (btnCopyInvite) {
+    btnCopyInvite.addEventListener('click', () => {
+      playSound('click');
+      const roomId = (gameState && gameState.room_id) ? gameState.room_id : savedRoomId;
+      copyInviteLink(roomId);
+    });
+  }
+
+  const btnCopyHeader = document.getElementById('btn-copy-header-code');
+  if (btnCopyHeader) {
+    btnCopyHeader.addEventListener('click', () => {
+      playSound('click');
+      const roomId = (gameState && gameState.room_id) ? gameState.room_id : savedRoomId;
+      copyInviteLink(roomId);
+    });
+  }
+
+  // Leave Room Buttons
+  const btnLeaveWaiting = document.getElementById('btn-leave-room-waiting');
+  if (btnLeaveWaiting) {
+    btnLeaveWaiting.addEventListener('click', () => {
+      leaveCurrentRoom();
+    });
+  }
+
+  const btnHeaderLeave = document.getElementById('btn-header-leave');
+  if (btnHeaderLeave) {
+    btnHeaderLeave.addEventListener('click', () => {
+      leaveCurrentRoom();
+    });
+  }
+
+  // Check URL Invitation Parameter: ?room=XYZ
+  const urlParams = new URLSearchParams(window.location.search);
+  const inviteRoom = urlParams.get('room');
+  if (inviteRoom) {
+    const inputJoin = document.getElementById('input-room-id');
+    if (inputJoin) inputJoin.value = inviteRoom.toUpperCase();
+    const tabJoinBtn = document.getElementById('tab-btn-join');
+    if (tabJoinBtn) tabJoinBtn.click();
+  } else {
+    // Generate a starter room code in create room input
+    const createInput = document.getElementById('input-create-room-id');
+    if (createInput) {
+      createInput.value = 'SOL-' + Math.floor(1000 + Math.random() * 9000);
+    }
+  }
 
   // Add Bot Button
   document.getElementById('btn-add-bot').addEventListener('click', () => {

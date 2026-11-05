@@ -304,6 +304,147 @@ button:disabled {
   border-color: var(--color-gold);
 }
 
+/* Lobby Tabs Navigation */
+.lobby-tabs-nav {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 8px;
+  overflow-x: auto;
+}
+
+.lobby-tab-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #94a3b8;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.lobby-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.lobby-tab-btn.active {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.2));
+  border-color: #f59e0b;
+  color: #fbbf24;
+}
+
+.lobby-tab-content {
+  display: none;
+}
+
+.lobby-tab-content.active {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.room-action-box {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tab-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.input-with-action {
+  display: flex;
+  gap: 8px;
+}
+
+.input-with-action input {
+  flex: 1;
+}
+
+.btn-inline {
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 8px;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f8fafc;
+}
+.btn-inline:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.public-rooms-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.rooms-list-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.room-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.room-item-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.room-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.room-item-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.room-item-meta {
+  font-size: 12px;
+  color: #94a3b8;
+  display: flex;
+  gap: 10px;
+}
+
+.badge-state-lobby {
+  color: #10b981;
+  font-weight: 700;
+}
+
+.badge-state-playing {
+  color: #f59e0b;
+  font-weight: 700;
+}
+
 .lobby-rules-summary {
   display: flex;
   flex-direction: column;

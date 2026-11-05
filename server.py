@@ -964,6 +964,25 @@ class ServerManager:
             self.rooms[room_id] = GameRoom(room_id, room_name or f"Phòng {room_id}")
         return self.rooms[room_id]
 
+    def get_public_rooms_summary(self) -> List[Dict[str, Any]]:
+        # Always maintain DEFAULT room
+        if 'DEFAULT' not in self.rooms:
+            self.rooms['DEFAULT'] = GameRoom('DEFAULT', 'Phòng Chung')
+        
+        res = []
+        for r_id, r in list(self.rooms.items()):
+            active_humans = [p for p in r.players if not p.is_bot and p.is_connected()]
+            res.append({
+                'id': r.id,
+                'name': r.name,
+                'player_count': len(r.players),
+                'human_count': len(active_humans),
+                'max_players': 6,
+                'state': r.state,
+                'is_default': (r.id == 'DEFAULT')
+            })
+        return res
+
     async def broadcast_room(self, room: GameRoom):
         for p in room.players:
             if p.ws and not p.is_bot:
@@ -1016,22 +1035,73 @@ async def ws_handler(websocket: ServerConnection):
             action = data.get('action')
             payload = data.get('payload', {})
 
-            if action == 'JOIN_ROOM':
+            if action == 'GET_ROOMS':
+                rooms_summary = manager.get_public_rooms_summary()
+                await websocket.send(json.dumps({'type': 'ROOM_LIST', 'rooms': rooms_summary}))
+                continue
+
+            elif action == 'CREATE_ROOM':
+                custom_code = payload.get('room_id', '').strip().upper()
+                player_name = payload.get('player_name', 'Người chơi').strip()
+                if not player_name:
+                    player_name = 'Người chơi'
+
+                # Auto-generate room code if empty or whitespace
+                if not custom_code:
+                    for _ in range(50):
+                        cand = f"SOL-{random.randint(1000, 9999)}"
+                        if cand not in manager.rooms:
+                            custom_code = cand
+                            break
+                    if not custom_code:
+                        custom_code = f"SOL-{random.randint(1000, 9999)}"
+
+                # Check if custom code already taken by active game
+                if custom_code in manager.rooms and custom_code != 'DEFAULT':
+                    ex = manager.rooms[custom_code]
+                    active_h = [p for p in ex.players if not p.is_bot and p.is_connected()]
+                    if len(active_h) > 0 and ex.state != 'LOBBY':
+                        await websocket.send(json.dumps({'type': 'ERROR', 'message': f'Phòng "{custom_code}" đang trong trận đấu! Vui lòng chọn mã khác.'}))
+                        continue
+
+                room = manager.get_or_create_room(custom_code, f"Phòng {custom_code}")
+                async with room.lock:
+                    room.players = [pl for pl in room.players if pl.is_connected()]
+                    player_id = f"P_{random.randint(1000, 9999)}"
+                    player = Player(player_id, player_name, is_bot=False, ws=websocket)
+                    player.is_host = True
+                    room.players.append(player)
+                    current_room_id = room.id
+                    current_player_id = player.id
+                    manager.connections[websocket] = (room.id, player.id)
+                    room.add_log(f"👑 {player.name} đã tạo phòng {room.id} và làm Chủ phòng.")
+
+                await manager.broadcast_room(room)
+
+            elif action == 'JOIN_ROOM':
                 room_id = payload.get('room_id', 'DEFAULT').strip().upper()
                 player_name = payload.get('player_name', 'Người chơi').strip()
                 if not room_id:
                     room_id = 'DEFAULT'
+                if not player_name:
+                    player_name = 'Người chơi'
+
+                if room_id not in manager.rooms and room_id != 'DEFAULT':
+                    await websocket.send(json.dumps({'type': 'ERROR', 'message': f'Không tìm thấy phòng "{room_id}"! Vui lòng kiểm tra lại mã hoặc bấm Tạo Phòng mới.'}))
+                    continue
 
                 room = manager.get_or_create_room(room_id)
                 async with room.lock:
-                    # Clean out disconnected human players in lobby
                     if room.state == 'LOBBY':
                         room.players = [pl for pl in room.players if pl.is_connected()]
+
+                    if len(room.players) >= 6:
+                        await websocket.send(json.dumps({'type': 'ERROR', 'message': f'Phòng {room_id} đã đủ 6 người tối đa!'}))
+                        continue
 
                     player_id = f"P_{random.randint(1000, 9999)}"
                     player = Player(player_id, player_name, is_bot=False, ws=websocket)
                     
-                    # If first player, or only human in room, or no host exists -> make host
                     active_humans = [pl for pl in room.players if not pl.is_bot and pl.ws is not None]
                     if len(active_humans) == 0 or not any(pl.is_host for pl in active_humans):
                         player.is_host = True
@@ -1043,6 +1113,37 @@ async def ws_handler(websocket: ServerConnection):
                     room.add_log(f"👋 {player.name} đã tham gia phòng.")
 
                 await manager.broadcast_room(room)
+
+            elif action == 'LEAVE_ROOM':
+                if current_room_id:
+                    room = manager.rooms.get(current_room_id)
+                    if room:
+                        async with room.lock:
+                            p = room.get_player(current_player_id)
+                            if p:
+                                if room.state == 'LOBBY':
+                                    room.players = [pl for pl in room.players if pl.id != p.id]
+                                    room.add_log(f"👋 {p.name} đã rời phòng.")
+                                else:
+                                    p.ws = None
+                                    room.add_log(f"👋 {p.name} đã ngắt kết nối.")
+                                
+                                # Assign next host if current host left
+                                active_hosts = [pl for pl in room.players if pl.is_host and not pl.is_bot and pl.ws is not None]
+                                if not active_hosts:
+                                    for pl in room.players:
+                                        if not pl.is_bot and pl.ws is not None:
+                                            pl.is_host = True
+                                            room.add_log(f"👑 Quyền Chủ phòng chuyển sang {pl.name}.")
+                                            break
+                        await manager.broadcast_room(room)
+
+                    if websocket in manager.connections:
+                        del manager.connections[websocket]
+                    current_room_id = None
+                    current_player_id = None
+                    await websocket.send(json.dumps({'type': 'ROOM_LEFT'}))
+                continue
 
             elif action == 'ADD_BOT':
                 if not current_room_id:

@@ -24,9 +24,11 @@
     </div>
     
     <div class="header-actions">
-      <div id="room-badge" class="room-pill hidden">
-        Phòng: <span id="display-room-id" class="code-val">DEFAULT</span>
+      <div id="room-badge" class="room-pill hidden" style="display: flex; align-items: center; gap: 8px;">
+        <span>Phòng: <span id="display-room-id" class="code-val">DEFAULT</span></span>
+        <button id="btn-copy-header-code" class="btn-inline" title="Sao chép link mời bạn bè" style="padding: 2px 8px; font-size: 11px; cursor: pointer;">📋 Copy</button>
       </div>
+      <button id="btn-header-leave" class="btn-outline" style="display: none; padding: 6px 12px; font-size: 12px; border-color: rgba(239, 68, 68, 0.4); color: #f87171;">🚪 Rời Bàn</button>
       <button id="btn-audio" class="btn-icon" title="Bật/Tắt âm thanh">🔊</button>
       <button id="btn-rules" class="btn-outline">📖 Luật chơi</button>
     </div>
@@ -35,29 +37,76 @@
   <!-- LOBBY VIEW -->
   <section id="view-lobby" class="view active">
     <div class="lobby-card card-glass">
-      <h2 class="section-title">Tham Gia Bàn Chơi</h2>
-      <p class="section-subtitle">Game bài bluffing & xả bài hack não với 80 lá, 6 chất và 7 công cụ tối thượng!</p>
+      <h2 class="section-title">Sảnh Chờ Soilate</h2>
+      <p class="section-subtitle">Game bài bluffing & xả bài hack não với 8 chất, Joker và 7 công cụ tối thượng!</p>
 
+      <!-- Player Profile Form -->
       <div class="form-group">
-        <label for="input-player-name">Tên của bạn:</label>
+        <label for="input-player-name">👤 Tên của bạn:</label>
         <input type="text" id="input-player-name" placeholder="Nhập biệt danh..." maxlength="16" value="Cao Thủ">
       </div>
 
-      <div class="form-group">
-        <label for="input-room-id">Mã phòng (hoặc để trống để vào phòng chung):</label>
-        <input type="text" id="input-room-id" placeholder="VD: VIP88" maxlength="12" style="text-transform: uppercase;">
+      <!-- Lobby Tabs Navigation -->
+      <div class="lobby-tabs-nav">
+        <button id="tab-btn-create" class="lobby-tab-btn active" data-tab="tab-create">✨ Tạo Phòng Mới</button>
+        <button id="tab-btn-join" class="lobby-tab-btn" data-tab="tab-join">🔑 Vào Bằng Mã</button>
+        <button id="tab-btn-rooms" class="lobby-tab-btn" data-tab="tab-rooms">🌐 Danh Sách Phòng</button>
       </div>
 
-      <div class="form-group server-input-group">
-        <label for="input-server-url" style="display: flex; justify-content: space-between; align-items: center;">
-          <span>🌐 Máy chủ Game (WebSocket):</span>
-          <span id="server-status-pill" class="badge-ready" style="font-size: 10px;">Tự động</span>
-        </label>
-        <input type="text" id="input-server-url" placeholder="Mặc định: Tự động kết nối" style="font-family: monospace; font-size: 12px;">
-        <small class="text-muted" style="font-size: 10px; display: block; margin-top: 4px;">Khi deploy trên Vercel: nhập URL máy chủ backend (VD: wss://soilate.onrender.com)</small>
+      <!-- TAB 1: CREATE ROOM -->
+      <div id="tab-create" class="lobby-tab-content active">
+        <div class="room-action-box">
+          <p class="tab-desc">Tạo bàn chơi riêng để mời bạn bè hoặc thêm Bot AI chơi ngay:</p>
+          <div class="form-group">
+            <label for="input-create-room-id">Mã phòng (để trống để tạo mã tự động):</label>
+            <div class="input-with-action">
+              <input type="text" id="input-create-room-id" placeholder="VD: VIP88 hoặc SOL-999" maxlength="12" style="text-transform: uppercase;">
+              <button id="btn-gen-random-code" class="btn-secondary btn-inline" title="Sinh mã phòng ngẫu nhiên">🎲 Mã ngẫu nhiên</button>
+            </div>
+          </div>
+          <button id="btn-create-room" class="btn-primary btn-large">🚀 Tạo Phòng &amp; Làm Chủ Bàn</button>
+        </div>
       </div>
 
-      <button id="btn-join-room" class="btn-primary btn-large">Vào Bàn Chơi 🚀</button>
+      <!-- TAB 2: JOIN ROOM WITH CODE -->
+      <div id="tab-join" class="lobby-tab-content">
+        <div class="room-action-box">
+          <p class="tab-desc">Nhập mã phòng bạn bè đã gửi cho bạn hoặc mã phòng chung:</p>
+          <div class="form-group">
+            <label for="input-room-id">Mã phòng:</label>
+            <input type="text" id="input-room-id" placeholder="Nhập mã phòng (VD: VIP88, SOL-1234)..." maxlength="12" style="text-transform: uppercase;">
+          </div>
+          <button id="btn-join-room" class="btn-primary btn-large">🚪 Vào Bàn Chơi</button>
+        </div>
+      </div>
+
+      <!-- TAB 3: PUBLIC ROOMS LIST -->
+      <div id="tab-rooms" class="lobby-tab-content">
+        <div class="public-rooms-container">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <span style="font-size: 13px; font-weight: 700; color: #94a3b8;">Các phòng đang hoạt động:</span>
+            <button id="btn-refresh-rooms" class="btn-secondary btn-inline" style="padding: 4px 10px; font-size: 12px;">🔄 Làm mới</button>
+          </div>
+          <div id="public-rooms-list" class="rooms-list-grid">
+            <div class="room-item-row" style="justify-content: center; color: #94a3b8; font-size: 13px;">
+              Đang tải danh sách phòng...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Advanced Server Settings (Collapsible) -->
+      <details class="server-config-details" style="margin-top: 5px; font-size: 12px; color: #94a3b8;">
+        <summary style="cursor: pointer; padding: 4px 0; user-select: none;">⚙️ Cấu hình máy chủ WebSocket (Nâng cao)</summary>
+        <div class="form-group server-input-group" style="margin-top: 8px;">
+          <label for="input-server-url" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>🌐 WebSocket Backend URL:</span>
+            <span id="server-status-pill" class="badge-ready" style="font-size: 10px;">Tự động</span>
+          </label>
+          <input type="text" id="input-server-url" placeholder="Mặc định: Tự động kết nối" style="font-family: monospace; font-size: 12px;">
+          <small class="text-muted" style="font-size: 10px; display: block; margin-top: 4px;">Khi deploy frontend độc lập trên Vercel: nhập URL máy chủ backend Render/Railway</small>
+        </div>
+      </details>
 
       <div class="lobby-rules-summary">
         <div class="rule-chip">⭐ 8 Chất: Bích, Chuồn, Rô, Cơ, Sao ⭐, Trăng 🌙, Vương miện 👑, Tia sét ⚡</div>
@@ -72,9 +121,15 @@
   <!-- ROOM WAITING VIEW -->
   <section id="view-room-waiting" class="view">
     <div class="waiting-card card-glass">
-      <div class="waiting-header">
-        <h2 id="waiting-room-title">Phòng Chờ</h2>
-        <p class="text-muted">Đợi người chơi khác vào bàn hoặc thêm Bot để bắt đầu ngay!</p>
+      <div class="waiting-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h2 id="waiting-room-title">Phòng Chờ</h2>
+          <p class="text-muted">Đợi người chơi khác vào bàn hoặc thêm Bot để bắt đầu ngay!</p>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button id="btn-copy-invite" class="btn-primary" style="padding: 6px 14px; font-size: 12px; background: linear-gradient(135deg, #3b82f6, #2563eb); border: none;">📋 Sao chép link mời</button>
+          <button id="btn-leave-room-waiting" class="btn-secondary" style="padding: 6px 14px; font-size: 12px; color: #f87171;">🚪 Rời phòng</button>
+        </div>
       </div>
 
       <div class="players-grid" id="waiting-players-list">
@@ -434,6 +489,6 @@
   </div>
 
   <!-- Audio Context & Game Script -->
-  <script src="game.js?v=11"></script>
+  <script src="game.js?v=12"></script>
 </body>
 </html>

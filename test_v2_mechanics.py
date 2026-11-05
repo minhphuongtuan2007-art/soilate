@@ -226,6 +226,35 @@ def test_auto_restart_countdown():
     assert len(p2.hand) == 12
     print("PASS: Game automatically transitioned to new match!")
 
+def test_room_management():
+    print("\n--- 7. Testing Create Room, Join Room & Room Listing ---")
+    from server import ServerManager
+    mgr = ServerManager()
+
+    # 1. Default room summary
+    summary = mgr.get_public_rooms_summary()
+    assert any(r['id'] == 'DEFAULT' for r in summary)
+
+    # 2. Create custom room
+    r_custom = mgr.get_or_create_room('VIP99', 'Phòng VIP 99')
+    assert r_custom.id == 'VIP99'
+    assert r_custom.name == 'Phòng VIP 99'
+
+    # 3. Add players to room
+    class MockWS:
+        class State:
+            OPEN = 1
+        state = State.OPEN
+    p1 = Player('p1', 'Chủ Phòng', False, MockWS())
+    p1.is_host = True
+    r_custom.players.append(p1)
+
+    summary_after = mgr.get_public_rooms_summary()
+    vip = next(r for r in summary_after if r['id'] == 'VIP99')
+    assert vip['player_count'] == 1
+    assert vip['human_count'] == 1
+    print("PASS: Room Management and Listing verified successfully!")
+
 if __name__ == '__main__':
     test_deck_scaling()
     test_penalties_and_tools()
@@ -233,4 +262,5 @@ if __name__ == '__main__':
     test_special_cards()
     test_shed_out_and_win()
     test_auto_restart_countdown()
+    test_room_management()
     print("\nALL MECHANICS TESTS PASSED SUCCESSFULLY! 🎯")
