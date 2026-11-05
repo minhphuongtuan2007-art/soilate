@@ -1,10 +1,10 @@
 @echo off
-title Soilate Multiplayer Game Server
+title Xon Multiplayer Game Server
 color 0A
 cd /d "%~dp0"
 
 echo ========================================================
-echo           SOILATE MULTIPLAYER GAME SERVER
+echo           XON MULTIPLAYER GAME SERVER
 echo ========================================================
 echo.
 echo [*] Starting server at http://localhost:8000 ...

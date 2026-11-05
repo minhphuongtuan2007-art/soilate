@@ -1,10 +1,10 @@
-# 🎴 SOILATE - Game Bài Tố & Soi Lật Multiplayer
+# 🎴 XỒN - Game Bài Tố & Soi Lật Multiplayer
 
 > Game bài đối kháng chiến thuật kết hợp giữa **Bluffing (Nói dối / Bắt bài)**, **Shedding (Xả bài hết trước để thắng)** và **7 Công cụ Lật kèo tối thượng**.
 
 ---
 
-## 🌟 ĐIỂM ĐẶC SẮC CỦA SOILATE
+## 🌟 ĐIỂM ĐẶC SẮC CỦA XỒN
 
 1. **Bộ bài 80 lá đột phá:**
    - **6 Chất bài:** 4 chất cổ điển (Bích ♠, Chuồn ♣, Rô ♦, Cơ ♥) + **2 chất mới** độc quyền: **Sao ⭐ (Vàng kim)** và **Trăng 🌙 (Tím huyền bí)**.

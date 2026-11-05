@@ -1,5 +1,5 @@
 """
-Test script for Soilate v2.0 mechanics:
+Test script for Xon v2.0 mechanics:
 - Dynamic deck scaling (suits & Jokers)
 - Tool assignment & execution
 - Penalty for regular bluff (cards - 1) & finish bluff (10 cards)
@@ -176,7 +176,7 @@ def test_shed_out_and_win():
     
     # 1. Verify Pass is rejected (No Pass rule)
     ok_pass, msg_pass = room.handle_pass(p2)
-    assert not ok_pass, "Pass should be disabled in Soilate"
+    assert not ok_pass, "Pass should be disabled in Xon"
 
     # 2. Verify p2 CANNOT play a different hand type (bắt buộc cùng thế)
     c_d1 = Card('diff1', 'S', 7)

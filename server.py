@@ -1,5 +1,5 @@
 """
-Soilate Multiplayer Game Server
+Xon Multiplayer Game Server
 Combines an HTTP Static Server (port 8000) and WebSocket Real-time Server (port 8765).
 """
 
@@ -231,7 +231,7 @@ class GameRoom:
 
     def check_single_card_draw(self, p: Player) -> bool:
         """
-        Quy tắc Soilate: Nếu người chơi chỉ còn đúng 1 lá bài trên tay,
+        Quy tắc Xồn: Nếu người chơi chỉ còn đúng 1 lá bài trên tay,
         bắt buộc phải bốc thêm 1 lá ngẫu nhiên từ nọc bài (hoặc từ chồng bài bỏ nếu nọc hết).
         """
         if len(p.hand) == 1 and p.finished_rank is None:
@@ -298,7 +298,7 @@ class GameRoom:
 
         # Verify at least 1 card is face-up
         if not face_up_ids:
-            return False, "Luật Soilate bắt buộc phải lật ngửa ít nhất 1 lá bài!"
+            return False, "Luật Xồn bắt buộc phải lật ngửa ít nhất 1 lá bài!"
 
         for fid in face_up_ids:
             if fid not in card_ids:
@@ -474,7 +474,7 @@ class GameRoom:
                 self.add_log(f"🔥 Lượt mở màn vòng mới chuyển sang {self.current_player().name}!")
 
     def handle_pass(self, player: Player) -> Tuple[bool, str]:
-        return False, "Luật Soilate không có tính năng bỏ lượt! Bạn bắt buộc phải Đánh bài hoặc Call!"
+        return False, "Luật Xồn không có tính năng bỏ lượt! Bạn bắt buộc phải Đánh bài hoặc Call!"
 
     def handle_use_tool(self, player: Player, tool_id: str, payload: Dict[str, Any]) -> Tuple[bool, str]:
         if self.state != 'PLAYING':
@@ -1420,7 +1420,7 @@ async def main():
 
     print(f"[*] WebSocket Server is running on port {WS_PORT}")
     print(f"============================================================")
-    print(f" 🎴 SOILATE MULTIPLAYER GAME SERVER ONLINE")
+    print(f" 🎴 XON MULTIPLAYER GAME SERVER ONLINE")
     if not IS_CLOUD:
         print(f" 👉 Đang tự động mở trình duyệt: http://localhost:{HTTP_PORT}")
     else:
@@ -1451,7 +1451,7 @@ if __name__ == '__main__':
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("\nĐã dừng server Soilate an toàn.")
+        print("\nĐã dừng server Xồn an toàn.")
     except Exception as e:
         print(f"\n[!] LỖI KHỞI CHẠY SERVER: {e}")
         traceback.print_exc()

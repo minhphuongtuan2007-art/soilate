@@ -1,5 +1,5 @@
 /**
- * Soilate - Client Game Controller & Web Audio Synthesizer
+ * Xon - Client Game Controller & Web Audio Synthesizer
  */
 
 // Global State
@@ -241,7 +241,7 @@ function connectWebSocket(playerName, roomId, action = 'JOIN_ROOM') {
   socket = new WebSocket(wsUrl);
 
   socket.onopen = () => {
-    console.log("Connected to Soilate Server.");
+    console.log("Connected to Xon Server.");
     isReconnecting = false;
     socket.send(JSON.stringify({
       action: currentRoomAction,
@@ -723,7 +723,7 @@ function createCardElement(card, isInteractive = false, isSelected = false, isFa
     div.innerHTML = `
       <div class="card-back-pattern">
         <span class="card-back-icon">❓</span>
-        <span class="card-back-label">SOILATE</span>
+        <span class="card-back-label">XỒN</span>
       </div>
     `;
     return div;

@@ -1,5 +1,5 @@
 """
-Soilate Game Logic Engine v2.0
+Xon Game Logic Engine v2.0
 Updated with:
 - Dynamic suits & Jokers scaling with player count (4 to 8 suits, 1 to 4 Jokers)
 - 8 Suits: Bích ♠, Chuồn ♣, Rô ♦, Cơ ♥, Sao ⭐, Trăng 🌙, Vương miện 👑, Tia sét ⚡
