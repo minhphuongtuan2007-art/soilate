@@ -1240,18 +1240,21 @@ button:disabled {
 
 /* SPECIAL MYSTERY CARDS */
 .game-card.special-card {
-  width: 104px;
+  width: 108px;
+  min-height: 145px;
+  height: auto;
   background: linear-gradient(145deg, #1e1b4b, #2e1065, #0f172a);
   border: 2px solid #f59e0b;
-  box-shadow: 0 0 16px rgba(245, 158, 11, 0.45);
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.55);
   color: #f8fafc;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 6px;
+  padding: 6px 6px 8px 6px;
   position: relative;
-  overflow: hidden;
-  animation: specialPulse 3s infinite alternate;
+  overflow: visible;
+  cursor: pointer;
+  animation: specialPulse 2.5s infinite alternate;
 }
 
 @keyframes specialPulse {
@@ -1306,17 +1309,19 @@ button:disabled {
 
 .btn-activate-special {
   width: 100%;
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: linear-gradient(135deg, #fbbf24, #d97706);
   color: #0f172a;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
-  padding: 4px 6px;
-  border-radius: 5px;
-  border: none;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #fef08a;
   cursor: pointer;
   margin-top: 4px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 3px 10px rgba(245, 158, 11, 0.5);
   transition: transform 0.15s, filter 0.15s;
+  pointer-events: auto;
+  z-index: 2;
 }
 
 .btn-activate-special:hover:not(:disabled) {

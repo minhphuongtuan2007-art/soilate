@@ -771,12 +771,7 @@ function createCardElement(card, isInteractive = false, isSelected = false, isFa
       if (actBtn) {
         actBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          if (!isMyTurn) {
-            alert("Chỉ được kích hoạt lá bài đặc biệt trong lượt của bạn!");
-            return;
-          }
-          playSound('call_slam');
-          sendAction('PLAY_SPECIAL_CARD', { card_id: card.id });
+          triggerSpecialCard(card);
         });
       }
     }
@@ -834,14 +829,29 @@ function createCardElement(card, isInteractive = false, isSelected = false, isFa
   return div;
 }
 
-function handleCardClick(cardId, e) {
-  playSound('click');
-
-  // Prevent special cards from being selected into normal combo hand
-  const targetCard = (gameState && gameState.your_hand) ? gameState.your_hand.find(c => c.id === cardId) : null;
-  if (targetCard && targetCard.is_special) {
+function triggerSpecialCard(card) {
+  const isMyTurn = (gameState && gameState.is_your_turn && gameState.state === 'PLAYING');
+  if (!isMyTurn) {
+    alert("Chỉ được kích hoạt lá bài chức năng trong lượt của bạn!");
     return;
   }
+  const sName = card.special_name || 'Lá bài chức năng';
+  const sDesc = card.special_desc || '';
+  if (confirm(`KÍCH HOẠT LÁ BÀI CHỨC NĂNG:\n\n* ${sName}\n* ${sDesc}\n\nBạn có muốn kích hoạt lá này ngay bây giờ?`)) {
+    playSound('call_slam');
+    sendAction('PLAY_SPECIAL_CARD', { card_id: card.id });
+  }
+}
+
+function handleCardClick(cardId, e) {
+  // If clicking on a special card, directly trigger its activation!
+  const targetCard = (gameState && gameState.your_hand) ? gameState.your_hand.find(c => c.id === cardId) : null;
+  if (targetCard && targetCard.is_special) {
+    triggerSpecialCard(targetCard);
+    return;
+  }
+
+  playSound('click');
 
   // If in tool selection mode (e.g. SWAP_RANDOM or CHANGE_SUIT)
   if (pendingTool) {
