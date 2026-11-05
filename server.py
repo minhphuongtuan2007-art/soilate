@@ -207,8 +207,8 @@ class GameRoom:
         if spawned_specials:
             self.add_log(f"✨ Lá bài bí ẩn xuất hiện ván này: {', '.join(spawned_specials)}")
 
-        # Deal cards: 12 cards for <=4 players, 10 for >4
-        deal_count = 12 if len(self.players) <= 4 else 10
+        # Deal cards: 15 cards for <=4 players, 13 for >4 (tăng thêm 3 lá mỗi người chơi)
+        deal_count = 15 if len(self.players) <= 4 else 13
         for p in self.players:
             p.hand = [self.deck.pop() for _ in range(deal_count)]
             p.sort_hand()

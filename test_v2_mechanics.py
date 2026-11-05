@@ -234,8 +234,8 @@ def test_auto_restart_countdown():
                 room.start_game()
 
     assert room.state == 'PLAYING'
-    assert len(p1.hand) == 12
-    assert len(p2.hand) == 12
+    assert len(p1.hand) == 15
+    assert len(p2.hand) == 15
     print("PASS: Game automatically transitioned to new match!")
 
 def test_room_management():
