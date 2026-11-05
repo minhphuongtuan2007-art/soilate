@@ -806,6 +806,9 @@ function handleCardClick(cardId, e) {
     ensureAtLeastOneFaceUp();
   }
 
+  // Tự động nhận diện thế bài khi chọn / bỏ chọn bài
+  autoFillClaim();
+
   renderPlayerHand();
   renderActionControls();
 }
@@ -829,9 +832,20 @@ function updateSelectionSummary() {
     return;
   }
 
+  const chosenCards = (gameState && gameState.your_hand) ? gameState.your_hand.filter(c => selectedCards.has(c.id)) : [];
+  const detected = detectBestHand(chosenCards);
+
   const upCount = Array.from(selectedCards).filter(cid => faceUpMap[cid] !== false).length;
   const downCount = selCount - upCount;
-  text.textContent = `Đã chọn: ${selCount} lá (${upCount} lá Ngửa, ${downCount} lá Úp) ${upCount >= 1 ? '✅' : '❌ Cần ít nhất 1 ngửa'}`;
+
+  let handTag = '';
+  if (detected.valid) {
+    handTag = ` | 🎯 Thế bài: <b style="color:#10b981;">${detected.name}</b>`;
+  } else if (selCount >= 2 && selCount <= 5) {
+    handTag = ` | 🎭 <b style="color:#fbbf24;">Bài Nói dối / Bluff</b>`;
+  }
+
+  text.innerHTML = `Đã chọn: ${selCount} lá (${upCount} lá Ngửa, ${downCount} lá Úp) ${upCount >= 1 ? '✅' : '❌ Cần ít nhất 1 ngửa'}${handTag}`;
 
   if (clearBtn) clearBtn.style.display = 'inline-block';
 }
@@ -1077,42 +1091,251 @@ function setupClaimForm() {
   // Auto-claim button helper
   document.getElementById('btn-auto-claim').addEventListener('click', () => {
     playSound('click');
-    autoFillClaim();
+    autoFillClaim(true);
+    updateSelectionSummary();
   });
 }
 
-function autoFillClaim() {
-  if (selectedCards.size === 0) return;
-  const chosenCards = gameState.your_hand.filter(c => selectedCards.has(c.id));
-  const count = chosenCards.length;
+/**
+ * Tự động nhận diện thế bài thực tế từ các lá đang chọn
+ * Trả về object chi tiết: { valid, type, name, rank, ... }
+ */
+function detectBestHand(chosenCards) {
+  if (!chosenCards || chosenCards.length === 0) {
+    return { valid: false, count: 0, reason: 'Chưa chọn lá bài nào' };
+  }
 
+  // Lá bài đặc biệt (Skip, Attack, Chaos...) không thể gộp thế bài thường
+  if (chosenCards.some(c => c.is_special)) {
+    return { valid: false, count: chosenCards.length, reason: 'Lá bài đặc biệt không thể kết hợp trong thế bài' };
+  }
+
+  const count = chosenCards.length;
+  if (count < 2 || count > 5) {
+    return { valid: false, count, reason: count < 2 ? 'Cần chọn ít nhất 2 lá' : 'Thế bài tối đa 5 lá' };
+  }
+
+  const wildcards = chosenCards.filter(c => c.is_wildcard || c.rank === 99);
+  const naturals = chosenCards.filter(c => !c.is_wildcard && c.rank !== 99);
+  const numWild = wildcards.length;
+
+  // 1. HAI LÁ: ĐÔI (Pair)
+  if (count === 2) {
+    if (naturals.length === 0) {
+      return { valid: true, type: 'pair', rank: 14, name: 'Đôi A (2 Joker 🃏)' };
+    }
+    if (naturals.length === 1) {
+      const r = naturals[0].rank;
+      return { valid: true, type: 'pair', rank: r, name: `Đôi ${RANK_LABELS[r]} (kèm Joker 🃏)` };
+    }
+    if (naturals[0].rank === naturals[1].rank) {
+      const r = naturals[0].rank;
+      return { valid: true, type: 'pair', rank: r, name: `Đôi ${RANK_LABELS[r]}` };
+    }
+    const maxR = Math.max(naturals[0].rank, naturals[1].rank);
+    return {
+      valid: false,
+      count: 2,
+      type: 'pair',
+      suggestedRank: maxR,
+      reason: '2 lá khác điểm số (Bài Nói dối / Bluff)'
+    };
+  }
+
+  // 2. BA LÁ: SÁM / BA LÁ (Three of a kind)
+  if (count === 3) {
+    const ranks = new Set(naturals.map(c => c.rank));
+    if (ranks.size <= 1) {
+      const r = naturals.length > 0 ? naturals[0].rank : 14;
+      return { valid: true, type: 'three', rank: r, name: `Ba lá ${RANK_LABELS[r]}${numWild > 0 ? ' (kèm Joker 🃏)' : ''}` };
+    }
+    const maxR = Math.max(...naturals.map(c => c.rank));
+    return {
+      valid: false,
+      count: 3,
+      type: 'three',
+      suggestedRank: maxR,
+      reason: '3 lá không cùng điểm (Bài Nói dối / Bluff)'
+    };
+  }
+
+  // 3. BỐN LÁ: TỨ QUÝ / BỐN LÁ (Four of a kind)
+  if (count === 4) {
+    const ranks = new Set(naturals.map(c => c.rank));
+    if (ranks.size <= 1) {
+      const r = naturals.length > 0 ? naturals[0].rank : 14;
+      return { valid: true, type: 'four', rank: r, name: `Tứ quý ${RANK_LABELS[r]}${numWild > 0 ? ' (kèm Joker 🃏)' : ''}` };
+    }
+    const maxR = Math.max(...naturals.map(c => c.rank));
+    return {
+      valid: false,
+      count: 4,
+      type: 'four',
+      suggestedRank: maxR,
+      reason: '4 lá không cùng điểm (Bài Nói dối / Bluff)'
+    };
+  }
+
+  // 4. NĂM LÁ: NGŨ QUÝ, THÙNG PHÁ SẢNH, CÙ LŨ, SẢNH
+  if (count === 5) {
+    // 4.1. Ngũ quý (Five of a kind)
+    const distinctRanks = new Set(naturals.map(c => c.rank));
+    if (distinctRanks.size <= 1) {
+      const r = naturals.length > 0 ? naturals[0].rank : 14;
+      return { valid: true, type: 'five', rank: r, name: `Ngũ quý ${RANK_LABELS[r]}${numWild > 0 ? ' (kèm Joker 🃏)' : ''}` };
+    }
+
+    // 4.2. Thùng phá sảnh (Straight Flush)
+    const suits = new Set(naturals.map(c => c.suit));
+    if (suits.size <= 1) {
+      const suit = naturals.length > 0 ? naturals[0].suit : 'S';
+      for (let high = 14; high >= 5; high--) {
+        const targetRanks = (high === 5) ? [14, 2, 3, 4, 5] : [high - 4, high - 3, high - 2, high - 1, high];
+        const natRanks = naturals.map(c => c.rank);
+        const uniqueNatRanks = new Set(natRanks);
+        if (uniqueNatRanks.size === natRanks.length) {
+          if (natRanks.every(r => targetRanks.includes(r))) {
+            if (targetRanks.length - natRanks.length <= numWild) {
+              return {
+                valid: true,
+                type: 'straight_flush',
+                high_rank: high,
+                suit: suit,
+                name: `Thùng phá sảnh ${SUIT_NAMES[suit]} tới ${RANK_LABELS[high]}`
+              };
+            }
+          }
+        }
+      }
+    }
+
+    // 4.3. Cù lũ (Full House: 3 lá Rank A + 2 lá Rank B)
+    if (distinctRanks.size === 2) {
+      const rArr = Array.from(distinctRanks);
+      const r1 = rArr[0], r2 = rArr[1];
+      const c1 = naturals.filter(c => c.rank === r1).length;
+      const c2 = naturals.filter(c => c.rank === r2).length;
+      let bestFH = null;
+
+      if (c1 <= 3 && c2 <= 2) {
+        const need1 = Math.max(0, 3 - c1);
+        const need2 = Math.max(0, 2 - c2);
+        if (need1 + need2 <= numWild) {
+          bestFH = { triple_rank: r1, pair_rank: r2 };
+        }
+      }
+      if (c2 <= 3 && c1 <= 2) {
+        const need2 = Math.max(0, 3 - c2);
+        const need1 = Math.max(0, 2 - c1);
+        if (need2 + need1 <= numWild) {
+          if (!bestFH || r2 > bestFH.triple_rank) {
+            bestFH = { triple_rank: r2, pair_rank: r1 };
+          }
+        }
+      }
+      if (bestFH) {
+        return {
+          valid: true,
+          type: 'full_house',
+          triple_rank: bestFH.triple_rank,
+          pair_rank: bestFH.pair_rank,
+          name: `Cù lũ (${RANK_LABELS[bestFH.triple_rank]} trên ${RANK_LABELS[bestFH.pair_rank]})`
+        };
+      }
+    }
+
+    // 4.4. Sảnh (Straight: 5 lá liên tiếp)
+    for (let high = 14; high >= 5; high--) {
+      const targetRanks = (high === 5) ? [14, 2, 3, 4, 5] : [high - 4, high - 3, high - 2, high - 1, high];
+      const natRanks = naturals.map(c => c.rank);
+      const uniqueNatRanks = new Set(natRanks);
+      if (uniqueNatRanks.size === natRanks.length) {
+        if (natRanks.every(r => targetRanks.includes(r))) {
+          if (targetRanks.length - natRanks.length <= numWild) {
+            return {
+              valid: true,
+              type: 'straight',
+              high_rank: high,
+              name: `Sảnh tới ${RANK_LABELS[high]}`
+            };
+          }
+        }
+      }
+    }
+
+    // 5 lá không khớp thế: Bluff!
+    const maxR = naturals.length > 0 ? Math.max(...naturals.map(c => c.rank)) : 14;
+    return {
+      valid: false,
+      count: 5,
+      type: 'full_house',
+      suggestedHigh: maxR,
+      reason: '5 lá không tạo thành thế bài (Bài Nói dối / Bluff)'
+    };
+  }
+
+  return { valid: false, count, reason: 'Chưa đủ điều kiện thế bài' };
+}
+
+/**
+ * Tự động phân tích các lá bài đang chọn và điền vào form tuyên bố
+ */
+function autoFillClaim(isManual = false) {
+  const badge = document.getElementById('detected-hand-badge');
   const selectType = document.getElementById('select-hand-type');
 
-  if (count === 2) {
-    selectType.value = 'pair';
-    selectType.dispatchEvent(new Event('change'));
-    const r = chosenCards[0].rank === 99 ? (chosenCards[1]?.rank || 14) : chosenCards[0].rank;
-    const rEl = document.getElementById('claim-rank');
-    if (rEl) rEl.value = r;
+  if (!gameState || !gameState.your_hand || selectedCards.size === 0) {
+    if (badge) {
+      badge.textContent = 'Chưa chọn bài';
+      badge.className = 'detected-badge neutral';
+    }
+    return;
+  }
 
-  } else if (count === 3) {
-    selectType.value = 'three';
-    selectType.dispatchEvent(new Event('change'));
-    const r = chosenCards[0].rank === 99 ? 14 : chosenCards[0].rank;
-    const rEl = document.getElementById('claim-rank');
-    if (rEl) rEl.value = r;
+  const chosenCards = gameState.your_hand.filter(c => selectedCards.has(c.id));
+  const detected = detectBestHand(chosenCards);
 
-  } else if (count === 4) {
-    selectType.value = 'four';
-    selectType.dispatchEvent(new Event('change'));
-    const r = chosenCards[0].rank === 99 ? 14 : chosenCards[0].rank;
-    const rEl = document.getElementById('claim-rank');
-    if (rEl) rEl.value = r;
+  // Cập nhật nhãn nhận diện trên giao diện
+  if (badge) {
+    if (detected.valid) {
+      badge.innerHTML = `✨ Nhận diện: <b>${detected.name}</b> (Bài Thật ✅)`;
+      badge.className = 'detected-badge valid-hand';
+    } else if (chosenCards.length >= 2 && chosenCards.length <= 5) {
+      badge.innerHTML = `🎭 ${detected.reason} (Đòn Nói dối / Bluff 🤫)`;
+      badge.className = 'detected-badge bluff-hand';
+    } else if (chosenCards.length === 1) {
+      badge.innerHTML = `ℹ️ Đã chọn 1 lá (Cần chọn thêm ít nhất 1 lá)`;
+      badge.className = 'detected-badge neutral';
+    } else {
+      badge.innerHTML = `⚠️ ${detected.reason}`;
+      badge.className = 'detected-badge neutral';
+    }
+  }
 
-  } else if (count === 5) {
-    // Check if straight or full house
-    selectType.value = 'full_house';
+  // Tự động điền giá trị thế bài vào dropdowns
+  if (detected.type && selectType) {
+    selectType.value = detected.type;
     selectType.dispatchEvent(new Event('change'));
+
+    if (['pair', 'three', 'four', 'five'].includes(detected.type)) {
+      const rEl = document.getElementById('claim-rank');
+      if (rEl) {
+        rEl.value = (detected.rank || detected.suggestedRank || 14);
+      }
+    } else if (detected.type === 'full_house') {
+      const tripEl = document.getElementById('claim-triple-rank');
+      const pairEl = document.getElementById('claim-pair-rank');
+      if (tripEl && detected.triple_rank) tripEl.value = detected.triple_rank;
+      if (pairEl && detected.pair_rank) pairEl.value = detected.pair_rank;
+    } else if (detected.type === 'straight') {
+      const highEl = document.getElementById('claim-high-rank');
+      if (highEl && detected.high_rank) highEl.value = detected.high_rank;
+    } else if (detected.type === 'straight_flush') {
+      const highEl = document.getElementById('claim-high-rank');
+      const suitEl = document.getElementById('claim-suit');
+      if (highEl && detected.high_rank) highEl.value = detected.high_rank;
+      if (suitEl && detected.suit) suitEl.value = detected.suit;
+    }
   }
 }
 
@@ -1320,6 +1543,7 @@ window.addEventListener('DOMContentLoaded', () => {
     // Reset local selection
     selectedCards.clear();
     faceUpMap = {};
+    autoFillClaim();
     renderPlayerHand();
   });
 
@@ -1342,6 +1566,7 @@ window.addEventListener('DOMContentLoaded', () => {
       playSound('click');
       selectedCards.clear();
       faceUpMap = {};
+      autoFillClaim();
       renderPlayerHand();
       renderActionControls();
     });

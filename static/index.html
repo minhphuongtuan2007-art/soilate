@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Soilate - Game Bài Tố &amp; Soi Lật Multiplayer</title>
-  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="style.css?v=9">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Cinzel:wght@700;900&display=swap" rel="stylesheet">
@@ -207,24 +207,29 @@
           
           <!-- Claim Hand Form (When playing) -->
           <div class="claim-form-panel" id="claim-form-panel">
-            <span class="form-title">Tuyên bố thế bài:</span>
-            
-            <select id="select-hand-type" class="game-select">
-              <option value="pair">Đôi (2 lá)</option>
-              <option value="three">Ba lá (3 lá)</option>
-              <option value="four">Bốn lá (Tứ quý - 4 lá)</option>
-              <option value="five">Năm lá (Ngũ quý - 5 lá)</option>
-              <option value="full_house">Cù lũ (3 + 2 lá)</option>
-              <option value="straight">Sảnh (5 lá liên tiếp)</option>
-              <option value="straight_flush">Thùng phá sảnh (5 lá cùng chất)</option>
-            </select>
-
-            <!-- Dynamic sub-inputs based on hand type -->
-            <div id="claim-sub-inputs" class="sub-inputs-row">
-              <!-- Rendered by JS based on select-hand-type -->
+            <div class="claim-header-row">
+              <span class="form-title">Tuyên bố thế bài:</span>
+              <div id="detected-hand-badge" class="detected-badge neutral">Chưa chọn bài</div>
             </div>
+            
+            <div class="claim-controls-row">
+              <select id="select-hand-type" class="game-select">
+                <option value="pair">Đôi (2 lá)</option>
+                <option value="three">Ba lá (3 lá)</option>
+                <option value="four">Bốn lá (Tứ quý - 4 lá)</option>
+                <option value="five">Năm lá (Ngũ quý - 5 lá)</option>
+                <option value="full_house">Cù lũ (3 + 2 lá)</option>
+                <option value="straight">Sảnh (5 lá liên tiếp)</option>
+                <option value="straight_flush">Thùng phá sảnh (5 lá cùng chất)</option>
+              </select>
 
-            <button id="btn-auto-claim" class="btn-small btn-secondary" title="Tự động điền tuyên bố theo các lá đã chọn">⚡ Gợi ý thế</button>
+              <!-- Dynamic sub-inputs based on hand type -->
+              <div id="claim-sub-inputs" class="sub-inputs-row">
+                <!-- Rendered by JS based on select-hand-type -->
+              </div>
+
+              <button id="btn-auto-claim" class="btn-small btn-secondary" title="Tự động nhận diện và áp dụng thế bài theo các lá đã chọn">⚡ Nhận diện lại</button>
+            </div>
           </div>
 
           <!-- Main Action Buttons -->
@@ -429,6 +434,6 @@
   </div>
 
   <!-- Audio Context & Game Script -->
-  <script src="game.js?v=10"></script>
+  <script src="game.js?v=11"></script>
 </body>
 </html>
