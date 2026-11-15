@@ -1151,6 +1151,8 @@ function renderPenaltyPicker() {
 /* ==========================================================================
    4. CLAIM FORM CONTROLS & DYNAMIC INPUTS
    ========================================================================== */
+let userHasManuallyEditedClaim = false;
+
 function setupClaimForm() {
   const selectType = document.getElementById('select-hand-type');
   const subContainer = document.getElementById('claim-sub-inputs');
@@ -1171,8 +1173,9 @@ function setupClaimForm() {
 
     } else if (type === 'full_house') {
       const label1 = document.createElement('span');
-      label1.textContent = 'Ba con:';
+      label1.textContent = 'Ba:';
       label1.style.fontSize = '11px';
+      label1.style.fontWeight = '700';
       const selectTriple = document.createElement('select');
       selectTriple.id = 'claim-triple-rank';
       selectTriple.className = 'game-select';
@@ -1180,6 +1183,7 @@ function setupClaimForm() {
       const label2 = document.createElement('span');
       label2.textContent = 'Đôi:';
       label2.style.fontSize = '11px';
+      label2.style.fontWeight = '700';
       const selectPair = document.createElement('select');
       selectPair.id = 'claim-pair-rank';
       selectPair.className = 'game-select';
@@ -1200,6 +1204,7 @@ function setupClaimForm() {
       const label = document.createElement('span');
       label.textContent = 'Tới con:';
       label.style.fontSize = '11px';
+      label.style.fontWeight = '700';
       const selectHigh = document.createElement('select');
       selectHigh.id = 'claim-high-rank';
       selectHigh.className = 'game-select';
@@ -1214,6 +1219,7 @@ function setupClaimForm() {
       const label1 = document.createElement('span');
       label1.textContent = 'Tới:';
       label1.style.fontSize = '11px';
+      label1.style.fontWeight = '700';
       const selectHigh = document.createElement('select');
       selectHigh.id = 'claim-high-rank';
       selectHigh.className = 'game-select';
@@ -1225,6 +1231,7 @@ function setupClaimForm() {
       const label2 = document.createElement('span');
       label2.textContent = 'Chất:';
       label2.style.fontSize = '11px';
+      label2.style.fontWeight = '700';
       const selectSuit = document.createElement('select');
       selectSuit.id = 'claim-suit';
       selectSuit.className = 'game-select';
@@ -1237,17 +1244,33 @@ function setupClaimForm() {
       subContainer.appendChild(label2);
       subContainer.appendChild(selectSuit);
     }
+
+    // Attach user change listeners so manual edits are preserved
+    const allSelects = subContainer.querySelectorAll('select');
+    allSelects.forEach(s => {
+      s.addEventListener('change', () => {
+        userHasManuallyEditedClaim = true;
+        updateSelectionSummary();
+      });
+    });
   }
 
-  selectType.addEventListener('change', updateSubInputs);
-  updateSubInputs();
-
-  // Auto-claim button helper
-  document.getElementById('btn-auto-claim').addEventListener('click', () => {
-    playSound('click');
-    autoFillClaim(true);
+  selectType.addEventListener('change', () => {
+    userHasManuallyEditedClaim = true;
+    updateSubInputs();
     updateSelectionSummary();
   });
+  updateSubInputs();
+
+  // Auto-claim button helper (Forces auto-fill from chosen cards)
+  const autoBtn = document.getElementById('btn-auto-claim');
+  if (autoBtn) {
+    autoBtn.addEventListener('click', () => {
+      playSound('click');
+      autoFillClaim(true);
+      updateSelectionSummary();
+    });
+  }
 }
 
 /**
@@ -1439,11 +1462,17 @@ function autoFillClaim(isManual = false) {
   const selectType = document.getElementById('select-hand-type');
 
   if (!gameState || !gameState.your_hand || selectedCards.size === 0) {
+    userHasManuallyEditedClaim = false;
     if (badge) {
       badge.textContent = 'Chưa chọn bài';
       badge.className = 'detected-badge neutral';
     }
     return;
+  }
+
+  // If user explicitly clicked the auto-detect button, reset manual flag
+  if (isManual) {
+    userHasManuallyEditedClaim = false;
   }
 
   const chosenCards = gameState.your_hand.filter(c => selectedCards.has(c.id));
@@ -1464,6 +1493,11 @@ function autoFillClaim(isManual = false) {
       badge.innerHTML = `⚠️ ${detected.reason}`;
       badge.className = 'detected-badge neutral';
     }
+  }
+
+  // If user customized their claim, don't overwrite their manual dropdown selections!
+  if (userHasManuallyEditedClaim && !isManual) {
+    return;
   }
 
   // Tự động điền giá trị thế bài vào dropdowns

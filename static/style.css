@@ -1823,3 +1823,126 @@ button:disabled {
   transform: translateY(2px) !important;
   box-shadow: 0 2px 0 #b91c1c, 0 4px 8px rgba(239, 68, 68, 0.4) !important;
 }
+
+
+/* Full width single-column layout without logs sidebar */
+.game-layout {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  grid-template-rows: auto auto auto auto !important;
+  gap: 14px !important;
+  width: 100% !important;
+}
+
+.logs-sidebar {
+  display: none !important;
+}
+
+.opponents-strip,
+.table-arena,
+.tools-strip,
+.player-dock {
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+}
+
+/* User Editable Claim Panel Styling */
+.claim-form-panel {
+  background: rgba(15, 23, 42, 0.75) !important;
+  border: 2px solid #38bdf8 !important;
+  border-radius: 12px !important;
+  padding: 10px 14px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  width: 100% !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.1) !important;
+}
+
+.claim-header-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+
+.form-title {
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  color: #facc15 !important;
+  letter-spacing: 0.5px !important;
+}
+
+.claim-controls-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+}
+
+.claim-field-group {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.claim-field-label {
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  color: #e2e8f0 !important;
+}
+
+.claim-select-primary {
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  padding: 6px 12px !important;
+  background: #1e293b !important;
+  color: #f8fafc !important;
+  border: 2px solid #38bdf8 !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+.sub-inputs-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.sub-inputs-row select {
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  padding: 6px 12px !important;
+  background: #1e293b !important;
+  color: #facc15 !important;
+  border: 2px solid #facc15 !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+.btn-auto-claim-uno {
+  background: linear-gradient(180deg, #38bdf8, #0284c7) !important;
+  color: #ffffff !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  border: 1.5px solid #7dd3fc !important;
+  border-radius: 8px !important;
+  padding: 6px 14px !important;
+  cursor: pointer !important;
+  box-shadow: 0 3px 0 #0369a1, 0 4px 10px rgba(56, 189, 248, 0.35) !important;
+  transition: transform 0.1s, box-shadow 0.1s !important;
+}
+
+.btn-auto-claim-uno:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 0 #0369a1, 0 6px 14px rgba(56, 189, 248, 0.5) !important;
+}
+
+.btn-auto-claim-uno:active {
+  transform: translateY(1px) !important;
+  box-shadow: 0 1px 0 #0369a1, 0 2px 4px rgba(56, 189, 248, 0.35) !important;
+}

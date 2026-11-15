@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Xồn - Game Bài Tố &amp; Soi Lật Multiplayer</title>
-  <link rel="stylesheet" href="style.css?v=21">
+  <link rel="stylesheet" href="style.css?v=22">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Cinzel:wght@700;900&display=swap" rel="stylesheet">
@@ -190,13 +190,8 @@
         </div>
       </div>
 
-      <!-- Live Logs Bar (Right side or compact ticker) -->
-      <div class="logs-sidebar card-glass">
-        <div class="logs-header">📜 Diễn Biến Trận Đấu</div>
-        <div class="logs-content" id="game-logs-list">
-          <div class="log-item">Chào mừng đến với Xồn!</div>
-        </div>
-      </div>
+      <!-- Logs removed from visual UI per user request, hidden container preserved for engine stability -->
+      <div id="game-logs-list" style="display: none;"></div>
 
       <!-- Tools Drawer (Công cụ Xồn) -->
       <div class="tools-strip card-glass">
@@ -230,30 +225,35 @@
         <!-- Action Controls Bar -->
         <div class="action-controls-bar">
           
-          <!-- Claim Hand Form (When playing) -->
+          <!-- Claim Hand Form (When playing - Cho phép tự do chỉnh nhận diện) -->
           <div class="claim-form-panel" id="claim-form-panel">
             <div class="claim-header-row">
-              <span class="form-title">Tuyên bố thế bài:</span>
+              <span class="form-title">🎯 CHỈNH NHẬN DIỆN &amp; TUYÊN BỐ THẾ BÀI:</span>
               <div id="detected-hand-badge" class="detected-badge neutral">Chưa chọn bài</div>
             </div>
             
             <div class="claim-controls-row">
-              <select id="select-hand-type" class="game-select">
-                <option value="pair">Đôi (2 lá)</option>
-                <option value="three">Ba lá (3 lá)</option>
-                <option value="four">Bốn lá (Tứ quý - 4 lá)</option>
-                <option value="five">Năm lá (Ngũ quý - 5 lá)</option>
-                <option value="full_house">Cù lũ (3 + 2 lá)</option>
-                <option value="straight">Sảnh (5 lá liên tiếp)</option>
-                <option value="straight_flush">Thùng phá sảnh (5 lá cùng chất)</option>
-              </select>
+              <div class="claim-field-group">
+                <label for="select-hand-type" class="claim-field-label">Thế bài:</label>
+                <select id="select-hand-type" class="game-select claim-select-primary">
+                  <option value="pair">Đôi (2 lá)</option>
+                  <option value="three">Ba lá (3 lá)</option>
+                  <option value="four">Bốn lá (Tứ quý - 4 lá)</option>
+                  <option value="five">Năm lá (Ngũ quý - 5 lá)</option>
+                  <option value="full_house">Cù lũ (3 + 2 lá)</option>
+                  <option value="straight">Sảnh (5 lá liên tiếp)</option>
+                  <option value="straight_flush">Thùng phá sảnh (5 lá cùng chất)</option>
+                </select>
+              </div>
 
-              <!-- Dynamic sub-inputs based on hand type -->
+              <!-- Dynamic sub-inputs based on hand type (chọn bậc/chất) -->
               <div id="claim-sub-inputs" class="sub-inputs-row">
                 <!-- Rendered by JS based on select-hand-type -->
               </div>
 
-              <button id="btn-auto-claim" class="btn-small btn-secondary" title="Tự động nhận diện và áp dụng thế bài theo các lá đã chọn">⚡ Nhận diện lại</button>
+              <button id="btn-auto-claim" class="btn-auto-claim-uno" title="Bấm để hệ thống tự động điền theo các lá bài bạn đang chọn">
+                ⚡ Tự động nhận diện
+              </button>
             </div>
           </div>
 
@@ -456,6 +456,6 @@
   </div>
 
   <!-- Audio Context & Game Script -->
-  <script src="game.js?v=21"></script>
+  <script src="game.js?v=22"></script>
 </body>
 </html>
