@@ -1476,3 +1476,350 @@ button:disabled {
     grid-column: 1 / 2;
   }
 }
+
+
+/* =========================================================
+   UNO PARTY ARCADE EDITION STYLING
+   ========================================================= */
+
+:root {
+  --card-width: 86px;
+  --card-height: 126px;
+}
+
+/* UNO LOGO POP */
+.logo-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.uno-logo-text {
+  font-family: 'Cinzel', 'Plus Jakarta Sans', Arial Black, sans-serif !important;
+  font-size: 26px !important;
+  font-weight: 900 !important;
+  background: linear-gradient(180deg, #fef08a 0%, #facc15 40%, #ea580c 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  filter: drop-shadow(0 2px 0 #991b1b) drop-shadow(0 4px 8px rgba(234, 88, 12, 0.5));
+  letter-spacing: 1px;
+  transform: skewX(-6deg);
+}
+.uno-badge {
+  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+  color: #fff !important;
+  font-weight: 900 !important;
+  font-size: 10px !important;
+  border-radius: 999px !important;
+  padding: 3px 8px !important;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.5) !important;
+  border: 1px solid #fca5a5 !important;
+  letter-spacing: 0.5px !important;
+}
+
+/* UNO CARDS */
+.game-card {
+  width: var(--card-width) !important;
+  height: var(--card-height) !important;
+  border-radius: 14px !important;
+  border: 3.5px solid #ffffff !important;
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.5) !important;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 5px;
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s;
+  flex-shrink: 0;
+  overflow: hidden;
+  user-select: none;
+}
+
+.game-card:hover {
+  transform: translateY(-10px) scale(1.04) !important;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.6) !important;
+  z-index: 5;
+}
+
+.game-card.selected {
+  transform: translateY(-24px) scale(1.08) !important;
+  box-shadow: 0 16px 32px rgba(250, 204, 21, 0.75), 0 0 18px rgba(250, 204, 21, 0.6) !important;
+  border: 3.5px solid #facc15 !important;
+  z-index: 10;
+}
+
+/* UNO SUIT BACKGROUNDS */
+.game-card[data-suit="H"] { background: linear-gradient(145deg, #f43f5e, #be123c) !important; color: #fff !important; }
+.game-card[data-suit="S"] { background: linear-gradient(145deg, #3b82f6, #1d4ed8) !important; color: #fff !important; }
+.game-card[data-suit="C"] { background: linear-gradient(145deg, #22c55e, #15803d) !important; color: #fff !important; }
+.game-card[data-suit="D"] { background: linear-gradient(145deg, #f97316, #c2410c) !important; color: #fff !important; }
+.game-card[data-suit="X"] { background: linear-gradient(145deg, #facc15, #ca8a04) !important; color: #fff !important; }
+.game-card[data-suit="M"] { background: linear-gradient(145deg, #a855f7, #7e22ce) !important; color: #fff !important; }
+.game-card[data-suit="K"] { background: linear-gradient(145deg, #ec4899, #be185d) !important; color: #fff !important; }
+.game-card[data-suit="L"] { background: linear-gradient(145deg, #06b6d4, #0e7490) !important; color: #fff !important; }
+.game-card[data-suit="W"] {
+  background: conic-gradient(from 180deg at 50% 50%, #f43f5e, #f97316, #facc15, #22c55e, #3b82f6, #a855f7, #f43f5e) !important;
+  color: #fff !important;
+}
+
+/* UNO CARD INNER & TILTED OVAL */
+.uno-card-inner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+}
+
+.uno-card-oval {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-24deg);
+  width: 82%;
+  height: 64%;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.uno-center-content {
+  transform: rotate(24deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-weight: 900;
+  font-family: 'Cinzel', 'Plus Jakarta Sans', Arial Black, sans-serif;
+}
+
+.uno-center-rank {
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.uno-center-suit {
+  font-size: 15px;
+  line-height: 1;
+}
+
+/* Center Oval Text Colors */
+.game-card[data-suit="H"] .uno-center-content { color: #be123c; }
+.game-card[data-suit="S"] .uno-center-content { color: #1d4ed8; }
+.game-card[data-suit="C"] .uno-center-content { color: #15803d; }
+.game-card[data-suit="D"] .uno-center-content { color: #c2410c; }
+.game-card[data-suit="X"] .uno-center-content { color: #a16207; }
+.game-card[data-suit="M"] .uno-center-content { color: #7e22ce; }
+.game-card[data-suit="K"] .uno-center-content { color: #be185d; }
+.game-card[data-suit="L"] .uno-center-content { color: #0e7490; }
+.game-card[data-suit="W"] .uno-card-oval { background: #0f172a; border: 2px solid #facc15; }
+.game-card[data-suit="W"] .uno-center-content { color: #facc15; }
+
+/* CORNERS */
+.card-corner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1;
+  font-weight: 900;
+  color: #ffffff !important;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8), -1px -1px 2px rgba(0, 0, 0, 0.8) !important;
+  z-index: 2;
+}
+
+.card-corner .card-rank {
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.card-corner .card-suit {
+  font-size: 11px;
+}
+
+.card-corner-bottom {
+  align-self: flex-end;
+  transform: rotate(180deg);
+}
+
+/* UNO CARD BACK */
+.game-card.card-back {
+  background: #0f172a !important;
+  border: 3.5px solid #ffffff !important;
+}
+
+.card-back-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.uno-back-oval {
+  transform: rotate(-24deg);
+  width: 88%;
+  height: 70%;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border-radius: 50%;
+  border: 2.5px solid #facc15;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.uno-back-logo {
+  font-family: 'Cinzel', 'Plus Jakarta Sans', Arial Black, sans-serif;
+  font-size: 17px;
+  font-weight: 900;
+  color: #facc15;
+  text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+  letter-spacing: 1px;
+  transform: rotate(24deg) skewX(-8deg);
+}
+
+/* UNO SPECIAL MYSTERY CARDS */
+.game-card.special-card {
+  width: 108px !important;
+  min-height: 152px !important;
+  height: auto !important;
+  border-radius: 14px !important;
+  border: 3.5px solid #ffffff !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6) !important;
+  color: #ffffff !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 6px;
+  position: relative;
+  overflow: visible;
+  cursor: pointer;
+}
+
+.game-card.special-card[data-special="SKIP"] { background: linear-gradient(145deg, #2563eb, #1e40af) !important; }
+.game-card.special-card[data-special="ATTACK"] { background: linear-gradient(145deg, #ef4444, #b91c1c) !important; }
+.game-card.special-card[data-special="OPEN_ALL"] { background: linear-gradient(145deg, #0891b2, #155e75) !important; }
+.game-card.special-card[data-special="CHAOS"] { background: linear-gradient(145deg, #9333ea, #6b21a8) !important; }
+.game-card.special-card[data-special="WINNER"] { background: linear-gradient(145deg, #eab308, #a16207) !important; }
+
+.uno-special-oval {
+  width: 68px !important;
+  height: 50px !important;
+  margin: 0 auto;
+}
+
+.uno-center-spec-icon {
+  font-size: 24px;
+  font-weight: 900;
+  color: #0f172a;
+}
+.game-card.special-card[data-special="ATTACK"] .uno-center-spec-icon { color: #dc2626; font-size: 22px; }
+.game-card.special-card[data-special="SKIP"] .uno-center-spec-icon { color: #2563eb; }
+.game-card.special-card[data-special="OPEN_ALL"] .uno-center-spec-icon { color: #0891b2; }
+.game-card.special-card[data-special="CHAOS"] .uno-center-spec-icon { color: #9333ea; }
+.game-card.special-card[data-special="WINNER"] .uno-center-spec-icon { color: #ca8a04; }
+
+.special-card-badge {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  background: #facc15 !important;
+  color: #0f172a !important;
+  font-size: 8px !important;
+  font-weight: 900 !important;
+  padding: 1px 5px !important;
+  border-radius: 4px !important;
+  letter-spacing: 0.5px !important;
+}
+
+.special-card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 2px;
+  margin: 4px 0;
+}
+
+.special-card-name {
+  font-size: 11px !important;
+  font-weight: 900 !important;
+  color: #fef08a !important;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+}
+
+.special-card-desc {
+  font-size: 8.5px !important;
+  color: #f1f5f9 !important;
+  line-height: 1.15 !important;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+}
+
+.btn-activate-special {
+  width: 100%;
+  background: linear-gradient(180deg, #fef08a, #facc15) !important;
+  color: #0f172a !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+  padding: 6px 8px !important;
+  border-radius: 8px !important;
+  border: 1.5px solid #ffffff !important;
+  cursor: pointer;
+  margin-top: 4px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4) !important;
+  transition: transform 0.15s, filter 0.15s;
+  pointer-events: auto;
+  z-index: 2;
+  text-align: center;
+}
+.btn-activate-special:hover:not(:disabled) {
+  transform: scale(1.04) !important;
+  filter: brightness(1.1) !important;
+  box-shadow: 0 4px 14px rgba(250, 204, 21, 0.7) !important;
+}
+
+/* CHUNKY ARCADE BUTTONS */
+.btn-primary.btn-action {
+  background: linear-gradient(180deg, #22c55e, #16a34a) !important;
+  color: #ffffff !important;
+  font-size: 14px !important;
+  font-weight: 900 !important;
+  border: 2px solid #86efac !important;
+  border-radius: 10px !important;
+  box-shadow: 0 4px 0 #15803d, 0 8px 16px rgba(34, 197, 94, 0.4) !important;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.4) !important;
+  transition: transform 0.1s, box-shadow 0.1s !important;
+}
+.btn-primary.btn-action:hover:not(:disabled) {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 0 #15803d, 0 10px 20px rgba(34, 197, 94, 0.5) !important;
+}
+.btn-primary.btn-action:active:not(:disabled) {
+  transform: translateY(2px) !important;
+  box-shadow: 0 2px 0 #15803d, 0 4px 8px rgba(34, 197, 94, 0.4) !important;
+}
+
+.btn-call.btn-action {
+  background: linear-gradient(180deg, #ef4444, #dc2626) !important;
+  color: #ffffff !important;
+  font-size: 14px !important;
+  font-weight: 900 !important;
+  border: 2px solid #fca5a5 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 4px 0 #b91c1c, 0 8px 16px rgba(239, 68, 68, 0.4) !important;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.4) !important;
+  transition: transform 0.1s, box-shadow 0.1s !important;
+}
+.btn-call.btn-action:hover:not(:disabled) {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 0 #b91c1c, 0 10px 20px rgba(239, 68, 68, 0.5) !important;
+}
+.btn-call.btn-action:active:not(:disabled) {
+  transform: translateY(2px) !important;
+  box-shadow: 0 2px 0 #b91c1c, 0 4px 8px rgba(239, 68, 68, 0.4) !important;
+}

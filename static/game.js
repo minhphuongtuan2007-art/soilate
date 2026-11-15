@@ -721,9 +721,10 @@ function createCardElement(card, isInteractive = false, isSelected = false, isFa
   if (!card.face_up && card.is_hidden) {
     div.className = 'game-card card-back';
     div.innerHTML = `
-      <div class="card-back-pattern">
-        <span class="card-back-icon">❓</span>
-        <span class="card-back-label">XỒN</span>
+      <div class="uno-card-inner card-back-inner">
+        <div class="uno-back-oval">
+          <span class="uno-back-logo">XỒN!</span>
+        </div>
       </div>
     `;
     return div;
@@ -733,35 +734,43 @@ function createCardElement(card, isInteractive = false, isSelected = false, isFa
   if (card.is_special) {
     div.className = 'game-card special-card';
     div.setAttribute('data-suit', 'SPEC');
+    div.setAttribute('data-special', card.special_type);
 
     let activateBtnHtml = '';
     const isMyTurn = (gameState && gameState.is_your_turn && gameState.state === 'PLAYING');
     if (isInteractive) {
       activateBtnHtml = `
-        <button class="btn-activate-special" ${isMyTurn ? '' : 'disabled'} title="${isMyTurn ? 'Kích hoạt ngay trong lượt của bạn' : 'Chỉ kích hoạt được trong lượt của bạn'}">
+        <button class="btn-activate-special" ${isMyTurn ? '' : 'disabled'} title="${isMyTurn ? 'Bấm để kích hoạt lá chức năng này ngay!' : 'Chỉ kích hoạt được trong lượt của bạn'}">
           ⚡ KÍCH HOẠT
         </button>
       `;
     }
 
-    const iconMap = {
-      'SKIP': '⏭️',
-      'ATTACK': '⚔️',
-      'OPEN_ALL': '👁️‍🗨️',
-      'CHAOS': '🌀',
-      'WINNER': '👑'
+    const specialMeta = {
+      'SKIP': { icon: '🚫', title: 'BỎ LƯỢT', code: 'SKIP', desc: card.special_desc || 'Bỏ qua lượt người kế' },
+      'ATTACK': { icon: '+2', title: 'BỐC 2', code: 'ATTACK', desc: card.special_desc || 'Bắt đối thủ bốc 2 lá' },
+      'OPEN_ALL': { icon: '🔍', title: 'SOI HẾT', code: 'OPEN', desc: card.special_desc || 'Lật ngửa toàn bộ bài úp' },
+      'CHAOS': { icon: '🌪️', title: 'ĐỔI BÀI', code: 'CHAOS', desc: card.special_desc || 'Xáo chia lại bài mọi người' },
+      'WINNER': { icon: '👑', title: 'THẮNG', code: 'WIN', desc: card.special_desc || 'Về đích ngay lập tức' }
     };
-    const sIcon = iconMap[card.special_type] || '✨';
+    const sInfo = specialMeta[card.special_type] || { icon: '✨', title: 'ĐẶC BIỆT', code: 'SPEC', desc: card.special_desc || '' };
 
     div.innerHTML = `
-      <div class="special-card-badge">ĐẶC BIỆT</div>
-      <div class="card-corner">
-        <span class="card-rank">✨</span>
+      <div class="special-card-badge">${sInfo.code}</div>
+      <div class="card-corner card-corner-top">
+        <span class="card-rank">${sInfo.icon}</span>
+      </div>
+      <div class="uno-card-oval uno-special-oval">
+        <div class="uno-center-content uno-special-content">
+          <span class="uno-center-spec-icon">${sInfo.icon}</span>
+        </div>
       </div>
       <div class="special-card-body">
-        <div class="special-card-icon">${sIcon}</div>
-        <div class="special-card-name">${escapeHtml(card.special_name || 'Lá Bí Ẩn')}</div>
-        <div class="special-card-desc">${escapeHtml(card.special_desc || '')}</div>
+        <div class="special-card-name">${escapeHtml(sInfo.title)}</div>
+        <div class="special-card-desc">${escapeHtml(sInfo.desc)}</div>
+      </div>
+      <div class="card-corner card-corner-bottom">
+        <span class="card-rank">${sInfo.icon}</span>
       </div>
       ${activateBtnHtml}
     `;
@@ -787,7 +796,7 @@ function createCardElement(card, isInteractive = false, isSelected = false, isFa
 
   const icon = SUIT_ICONS[card.suit] || card.suit;
   const rankStr = card.is_wildcard ? '★' : (RANK_LABELS[card.rank] || card.rank);
-  const alteredBadge = card.altered_suit ? `<span class="suit-badge-altered">Đã đổi chất: ${SUIT_ICONS[card.altered_suit]}</span>` : '';
+  const alteredBadge = card.altered_suit ? `<span class="suit-badge-altered">Đã đổi: ${SUIT_ICONS[card.altered_suit]}</span>` : '';
 
   let flipBtnHtml = '';
   if (isSelected && isInteractive) {
@@ -800,14 +809,21 @@ function createCardElement(card, isInteractive = false, isSelected = false, isFa
 
   div.innerHTML = `
     ${flipBtnHtml}
-    <div class="card-corner">
-      <span class="card-rank">${rankStr}</span>
-      <span class="card-suit">${icon}</span>
-    </div>
-    <div class="card-center">${icon}</div>
-    <div class="card-corner card-corner-bottom">
-      <span class="card-rank">${rankStr}</span>
-      <span class="card-suit">${icon}</span>
+    <div class="uno-card-inner">
+      <div class="card-corner card-corner-top">
+        <span class="card-rank">${rankStr}</span>
+        <span class="card-suit">${icon}</span>
+      </div>
+      <div class="uno-card-oval">
+        <div class="uno-center-content">
+          <span class="uno-center-rank">${rankStr}</span>
+          <span class="uno-center-suit">${icon}</span>
+        </div>
+      </div>
+      <div class="card-corner card-corner-bottom">
+        <span class="card-rank">${rankStr}</span>
+        <span class="card-suit">${icon}</span>
+      </div>
     </div>
     ${alteredBadge}
   `;
